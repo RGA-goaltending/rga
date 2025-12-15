@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Check, MapPin, Calendar, Activity, ArrowRight, Zap, Users, Star } from 'lucide-react';
 import Copy from '../components/Copy'; // Ensure this path matches where you saved Copy.tsx
 
@@ -54,26 +55,28 @@ export default function CinematicPricing() {
             <div className="group relative bg-[#111] border border-[#333] rounded-[2rem] p-1 overflow-hidden hover:border-[#D52B1E] transition-colors duration-500 shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D52B1E] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
                 
-                <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10">
-                    <div className="flex justify-between items-start mb-8">
-                        <div className="p-4 bg-[#D52B1E] rounded-2xl text-white shadow-[0_0_20px_rgba(213,43,30,0.4)]">
-                            <Zap size={28} fill="currentColor" />
+                <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10 flex flex-col">
+                    <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="p-4 bg-[#D52B1E] rounded-2xl text-white shadow-[0_0_20px_rgba(213,43,30,0.4)]">
+                                <Zap size={28} fill="currentColor" />
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-3xl font-black uppercase italic">Individual</h3>
+                                <p className="text-[#D52B1E] font-bold uppercase text-xs tracking-widest">1 on 1 Focus</p>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <h3 className="text-3xl font-black uppercase italic">Individual</h3>
-                            <p className="text-[#D52B1E] font-bold uppercase text-xs tracking-widest">1 on 1 Focus</p>
+
+                        <div className="space-y-6 mb-10">
+                            <PriceItem label="1 Session" price="135" />
+                            <PriceItem label="5 Sessions" price="125" sub="/session" />
+                            <PriceItem label="10 Sessions" price="110" sub="/session" activeColor="text-[#D52B1E]" />
                         </div>
                     </div>
 
-                    <div className="space-y-6 mb-10">
-                        <PriceItem label="1 Session" price="135" />
-                        <PriceItem label="5 Sessions" price="125" sub="/session" />
-                        <PriceItem label="10 Sessions" price="110" sub="/session" activeColor="text-[#D52B1E]" />
-                    </div>
-
-                    <button className="w-full py-4 bg-[#1a1a1a] border border-white/10 rounded-xl uppercase font-black tracking-widest hover:bg-[#D52B1E] hover:text-white hover:border-[#D52B1E] transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-[0_0_30px_rgba(213,43,30,0.4)]">
+                    <Link href="/book" className="w-full mt-auto py-4 bg-[#1a1a1a] border border-white/10 rounded-xl uppercase font-black tracking-widest hover:bg-[#D52B1E] hover:text-white hover:border-[#D52B1E] transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-[0_0_30px_rgba(213,43,30,0.4)]">
                         Select Plan <ArrowRight size={18} />
-                    </button>
+                    </Link>
                 </div>
             </div>
 
@@ -83,26 +86,27 @@ export default function CinematicPricing() {
                     Most Popular
                 </div>
 
-                <div className="bg-[#080808] rounded-[1.8rem] p-8 md:p-10 h-full relative z-10">
-                    <div className="flex justify-between items-start mb-10 mt-4">
-                        <div className="p-4 bg-[#0039A6] rounded-2xl text-white shadow-[0_0_20px_rgba(0,57,166,0.4)]">
-                            <Users size={32} fill="currentColor" />
+                <div className="bg-[#080808] rounded-[1.8rem] p-8 md:p-10 h-full relative z-10 flex flex-col">
+                    <div className="flex-grow">
+                        <div className="flex justify-between items-start mb-10 mt-4">
+                            <div className="p-4 bg-[#0039A6] rounded-2xl text-white shadow-[0_0_20px_rgba(0,57,166,0.4)]">
+                                <Users size={32} fill="currentColor" />
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-4xl font-black uppercase italic text-white">Group of 2</h3>
+                                <p className="text-[#0039A6] font-bold uppercase text-xs tracking-widest">Per Person</p>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <h3 className="text-4xl font-black uppercase italic text-white">Group of 2</h3>
-                            <p className="text-[#0039A6] font-bold uppercase text-xs tracking-widest">Per Person</p>
+
+                        <div className="space-y-6 mb-12">
+                            <PriceItem label="1 Session" price="100" />
+                            <PriceItem label="5 Sessions" price="90" sub="/session" />
+                            <PriceItem label="10 Sessions" price="80" sub="/session" activeColor="text-[#0039A6]" />
                         </div>
                     </div>
-
-                    <div className="space-y-6 mb-12">
-                        <PriceItem label="1 Session" price="100" />
-                        <PriceItem label="5 Sessions" price="90" sub="/session" />
-                        <PriceItem label="10 Sessions" price="80" sub="/session" activeColor="text-[#0039A6]" />
-                    </div>
-
-                    <button className="w-full py-5 bg-[#0039A6] text-white rounded-xl uppercase font-black tracking-widest hover:bg-white hover:text-[#0039A6] transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(0,57,166,0.4)]">
+                    <Link href="/book" className="w-full mt-auto py-5 bg-[#0039A6] text-white rounded-xl uppercase font-black tracking-widest hover:bg-white hover:text-[#0039A6] transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(0,57,166,0.4)]">
                         Select Plan <ArrowRight size={18} />
-                    </button>
+                    </Link>
                 </div>
             </div>
 
@@ -110,26 +114,27 @@ export default function CinematicPricing() {
             <div className="group relative bg-[#111] border border-[#333] rounded-[2rem] p-1 overflow-hidden hover:border-white transition-colors duration-500 shadow-2xl">
                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
                 
-                <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10">
-                    <div className="flex justify-between items-start mb-8">
-                        <div className="p-4 bg-white/10 rounded-2xl text-white border border-white/20">
-                            <Activity size={28} />
+                <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10 flex flex-col">
+                    <div class="flex-grow">
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="p-4 bg-white/10 rounded-2xl text-white border border-white/20">
+                                <Activity size={28} />
+                            </div>
+                            <div className="text-right">
+                                <h3 className="text-3xl font-black uppercase italic">Group of 3</h3>
+                                <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Per Person</p>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <h3 className="text-3xl font-black uppercase italic">Group of 3</h3>
-                            <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Per Person</p>
+
+                        <div className="space-y-6 mb-10">
+                            <PriceItem label="1 Session" price="85" />
+                            <PriceItem label="5 Sessions" price="75" sub="/session" />
+                            <PriceItem label="10 Sessions" price="65" sub="/session" activeColor="text-white" />
                         </div>
                     </div>
-
-                    <div className="space-y-6 mb-10">
-                        <PriceItem label="1 Session" price="85" />
-                        <PriceItem label="5 Sessions" price="75" sub="/session" />
-                        <PriceItem label="10 Sessions" price="65" sub="/session" activeColor="text-white" />
-                    </div>
-
-                    <button className="w-full py-4 bg-[#1a1a1a] border border-white/10 rounded-xl uppercase font-black tracking-widest hover:bg-white hover:text-black hover:border-white transition-all duration-300 flex items-center justify-center gap-2">
+                    <Link href="/book" className="w-full mt-auto py-4 bg-[#1a1a1a] border border-white/10 rounded-xl uppercase font-black tracking-widest hover:bg-white hover:text-black hover:border-white transition-all duration-300 flex items-center justify-center gap-2">
                         Select Plan <ArrowRight size={18} />
-                    </button>
+                    </Link>
                 </div>
             </div>
 
