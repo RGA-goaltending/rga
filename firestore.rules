@@ -1,21 +1,26 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // By default, deny all reads and writes
-    match /{document=**} {
-      allow read, write: if false;
-    }
 
-    // Allow anyone to read the training slots
-    match /training_slots/{slot} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == "oscar@test.com"; // Restrict writes to admin
-    }
-
-    // Allow users to manage their own documents in the 'users' collection
+    // Users can read/update their own profile, but not others'
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Training Slots
+    match /training_slots/{slotId} {
+      // Any authenticated user can read available slots or their own booked slots
+      allow read: if request.auth != null;
+
+      // ONLY an admin can create, update, or delete slots
+      allow create, delete, update: if request.auth != null && request.auth.token.email == "admin@example.com";
+
+      // A regular user can ONLY update a slot to book it for themselves,
+      // and only if it's currently available.
+      allow update: if request.auth != null
+                    && request.auth.uid == request.resource.data.userId
+                    && resource.data.status == 'available';
     }
   }
 }

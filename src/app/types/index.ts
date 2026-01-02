@@ -4,13 +4,16 @@ export interface TrainingSlot {
   date: string;       // ISO Date String (YYYY-MM-DD)
   startTime: string;  // "14:00"
   price: number;
-  status: 'available' | 'booked';
+  packageName: string;
+  status: 'available' | 'booked' | 'pending';
   customerName?: string;
   customerEmail?: string;
-  bookedAt?: string;
+  bookedAt?: string; // ISO String
+  userId?: string;
 }
 
 export interface UserProfile {
   uid: string;
   email: string | null;
+  displayName?: string | null;
 }

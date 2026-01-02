@@ -3,31 +3,33 @@
 import React from 'react';
 import Link from 'next/link';
 import { Check, MapPin, Calendar, Activity, ArrowRight, Zap, Users, Star } from 'lucide-react';
-import Copy from '../components/Copy'; // Ensure this path matches where you saved Copy.tsx
+import Copy from '../components/Copy';
+import { packages } from '../data/packages'; // Import the packages data
+
+// Helper function to find a package by its name
+const getPackage = (name: string) => {
+  return packages.find(p => p.name.includes(name));
+};
 
 export default function CinematicPricing() {
+  const individualPackage = getPackage('Individual');
+  const groupOf2Package = getPackage('Group of 2');
+  const groupOf3Package = getPackage('Group of 3');
+
   return (
     <section className="relative min-h-screen bg-[#110c0c] text-white font-sans overflow-hidden py-24 md:py-32 selection:bg-[#D52B1E] selection:text-white border-t border-white/20" id='price'>
       
-      {/* ==================== 1. ARENA BACKGROUND SYSTEM ==================== */}
+      {/* Background elements */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-          {/* Spotlight Effect (Top Center) */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120vw] h-[800px] bg-[radial-gradient(circle_at_top,rgba(133,80,80,0.15)_0%,transparent_70%)] blur-[60px]"></div>
-          
-          {/* Cold Blue/Red Ambient Glows */}
           <div className="absolute top-[20%] right-[-10%] w-[800px] h-[800px] bg-[#0039A6] opacity-[0.08] blur-[150px] rounded-full"></div>
           <div className="absolute bottom-[-10%] left-[-10%] w-[800px] h-[800px] bg-[#D52B1E] opacity-[0.08] blur-[150px] rounded-full"></div>
-
-          {/* "Scratched Ice" Texture Overlay */}
           <div className="absolute inset-0 opacity-[0.15] bg-[url('https://www.transparenttextures.com/patterns/scratch-pad.png')] mix-blend-overlay"></div>
-          
-          {/* Tactical Grid */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px]"></div>
       </div>
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6">
         
-        {/* ==================== HEADER ==================== */}
         <div className="text-center mb-12 relative">
             <div className="inline-flex items-center gap-3 bg-white/10 border border-white/20 px-6 py-2 rounded-full backdrop-blur-md mb-8 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                 <Star size={14} className="text-[#D52B1E] fill-[#D52B1E]" />
@@ -44,7 +46,6 @@ export default function CinematicPricing() {
             </div>
         </div>
 
-        {/* ==================== TOP TEXT: HST APPLICABLE ==================== */}
         <div className="text-center mb-10">
             <p className="inline-block text-white/90 font-bold uppercase tracking-[0.25em] text-sm border-b border-[#D52B1E] pb-2">
                 <span className="text-[#D52B1E] mr-2">•</span> 
@@ -59,7 +60,6 @@ export default function CinematicPricing() {
             {/* CARD 1: INDIVIDUAL (RED) */}
             <div className="group relative bg-[#111] border border-[#333] rounded-[2rem] p-1 overflow-hidden hover:border-[#D52B1E] transition-colors duration-500 shadow-2xl">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D52B1E] to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                
                 <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10 flex flex-col">
                     <div className="flex-grow">
                         <div className="flex justify-between items-start mb-8">
@@ -71,14 +71,12 @@ export default function CinematicPricing() {
                                 <p className="text-[#D52B1E] font-bold uppercase text-xs tracking-widest">1 on 1 Focus</p>
                             </div>
                         </div>
-
                         <div className="space-y-6 mb-10">
-                            <PriceItem label="1 Session" price="135" />
-                            <PriceItem label="5 Sessions" price="125" sub="/session" />
-                            <PriceItem label="10 Sessions" price="110" sub="/session" activeColor="text-[#D52B1E]" />
+                            {individualPackage && <PriceItem label="1 Session" price={individualPackage.price} />}
+                            {individualPackage && <PriceItem label="5 Sessions" price={individualPackage.price5 || 0} sub="/session" />}
+                            {individualPackage && <PriceItem label="10 Sessions" price={individualPackage.price10 || 0} sub="/session" activeColor="text-[#D52B1E]" />}
                         </div>
                     </div>
-
                     <Link href="/book" className="w-full mt-auto py-4 bg-[#1a1a1a] border border-white/10 rounded-xl uppercase font-black tracking-widest hover:bg-[#D52B1E] hover:text-white hover:border-[#D52B1E] transition-all duration-300 flex items-center justify-center gap-2 group-hover:shadow-[0_0_30px_rgba(213,43,30,0.4)]">
                         Select Plan <ArrowRight size={18} />
                     </Link>
@@ -87,10 +85,7 @@ export default function CinematicPricing() {
 
             {/* CARD 2: GROUP OF 2 (BLUE - HERO) */}
             <div className="group relative bg-[#111] border-2 border-[#0039A6] rounded-[2rem] p-1 overflow-hidden transform lg:-translate-y-6 shadow-[0_0_50px_rgba(0,57,166,0.15)] z-20">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#0039A6] text-white text-xs font-black uppercase tracking-widest px-6 py-2 rounded-b-xl z-20 shadow-lg">
-                    Most Popular
-                </div>
-
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#0039A6] text-white text-xs font-black uppercase tracking-widest px-6 py-2 rounded-b-xl z-20 shadow-lg">Most Popular</div>
                 <div className="bg-[#080808] rounded-[1.8rem] p-8 md:p-10 h-full relative z-10 flex flex-col">
                     <div className="flex-grow">
                         <div className="flex justify-between items-start mb-10 mt-4">
@@ -102,11 +97,10 @@ export default function CinematicPricing() {
                                 <p className="text-[#0039A6] font-bold uppercase text-xs tracking-widest">Per Person</p>
                             </div>
                         </div>
-
                         <div className="space-y-6 mb-12">
-                            <PriceItem label="1 Session" price="100" />
-                            <PriceItem label="5 Sessions" price="90" sub="/session" />
-                            <PriceItem label="10 Sessions" price="80" sub="/session" activeColor="text-[#0039A6]" />
+                            {groupOf2Package && <PriceItem label="1 Session" price={groupOf2Package.price} />}
+                            {groupOf2Package && <PriceItem label="5 Sessions" price={groupOf2Package.price5 || 0} sub="/session" />}
+                            {groupOf2Package && <PriceItem label="10 Sessions" price={groupOf2Package.price10 || 0} sub="/session" activeColor="text-[#0039A6]" />}
                         </div>
                     </div>
                     <Link href="/book" className="w-full mt-auto py-5 bg-[#0039A6] text-white rounded-xl uppercase font-black tracking-widest hover:bg-white hover:text-[#0039A6] transition-all duration-300 flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(0,57,166,0.4)]">
@@ -118,7 +112,6 @@ export default function CinematicPricing() {
             {/* CARD 3: GROUP OF 3 (WHITE) */}
             <div className="group relative bg-[#111] border border-[#333] rounded-[2rem] p-1 overflow-hidden hover:border-white transition-colors duration-500 shadow-2xl">
                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                
                 <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10 flex flex-col">
                     <div className="flex-grow">
                         <div className="flex justify-between items-start mb-8">
@@ -130,11 +123,10 @@ export default function CinematicPricing() {
                                 <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Per Person</p>
                             </div>
                         </div>
-
                         <div className="space-y-6 mb-10">
-                            <PriceItem label="1 Session" price="85" />
-                            <PriceItem label="5 Sessions" price="75" sub="/session" />
-                            <PriceItem label="10 Sessions" price="65" sub="/session" activeColor="text-white" />
+                           {groupOf3Package && <PriceItem label="1 Session" price={groupOf3Package.price} />}
+                           {groupOf3Package && <PriceItem label="5 Sessions" price={groupOf3Package.price5 || 0} sub="/session" />}
+                           {groupOf3Package && <PriceItem label="10 Sessions" price={groupOf3Package.price10 || 0} sub="/session" activeColor="text-white" />}
                         </div>
                     </div>
                     <Link href="/book" className="w-full mt-auto py-4 bg-[#1a1a1a] border border-white/10 rounded-xl uppercase font-black tracking-widest hover:bg-white hover:text-black hover:border-white transition-all duration-300 flex items-center justify-center gap-2">
@@ -142,17 +134,15 @@ export default function CinematicPricing() {
                     </Link>
                 </div>
             </div>
-
         </div>
 
-        {/* ==================== LAST TEXT: EXCLUSIVE OF HST & ICE RENTAL ==================== */}
+        {/* Process section remains the same */}
         <div className="text-center mb-32 relative z-20">
             <p className="text-gray-400 font-mono text-sm uppercase tracking-widest bg-black/50 inline-block px-8 py-4 rounded border border-white/10 backdrop-blur-sm">
                 ⚠️ Note: All prices are exclusive of HST • Ice rental fees are paid separately
             </p>
         </div>
 
-        {/* ==================== PROCESS SECTION ==================== */}
         <div className="bg-[#000000] border border-white/10 rounded-[3rem] p-8 md:p-16 relative overflow-hidden">
             
             <div className="relative z-10">

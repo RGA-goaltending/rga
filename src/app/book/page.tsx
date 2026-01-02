@@ -7,6 +7,8 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { TrainingSlot } from '../types';
 import { Loader, CheckCircle, AlertCircle, Lock } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
+import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -21,6 +23,8 @@ export default function BookSession() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const formRef = useRef<HTMLDivElement>(null);
+  const { user, loading, isAdmin } = useAuth();
+  const router = useRouter();
 
   // Handle booking status from URL
   useEffect(() => {
@@ -35,24 +39,43 @@ export default function BookSession() {
   const [bookingStatus, setBookingStatus] = useState<'success' | 'error' | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "training_slots"), where("status", "==", "available"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const slotsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingSlot));
-      slotsData.sort((a, b) => new Date(`${a.date}T${a.startTime}`).getTime() - new Date(`${b.date}T${b.startTime}`).getTime());
-      setSlots(slotsData);
-      setIsLoading(false);
-    }, (error) => {
-      console.error("Error fetching slots: ", error);
-      setIsLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    if (!loading) {
+      if (!user) {
+        router.push('/create-account');
+      } else if (isAdmin) {
+        router.push('/admin');
+      }
+    }
+  }, [user, loading, isAdmin, router]);
+
+  useEffect(() => {
+    if (user && !isAdmin) {
+      const q = query(collection(db, "training_slots"), where("status", "==", "available"));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const slotsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TrainingSlot));
+        slotsData.sort((a, b) => new Date(`${a.date}T${a.startTime}`).getTime() - new Date(`${b.date}T${b.startTime}`).getTime());
+        setSlots(slotsData);
+        setIsLoading(false);
+      }, (error) => {
+        console.error("Error fetching slots: ", error);
+        setIsLoading(false);
+      });
+      return () => unsubscribe();
+    }
+  }, [user, isAdmin]);
 
   useEffect(() => {
     if (selectedSlot && formRef.current) {
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [selectedSlot]);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.displayName || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
 
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,9 +123,10 @@ export default function BookSession() {
     return `${formattedHour}:${minutes} ${ampm}`;
   };
 
-  if (isLoading) {
-    return <div className="text-center py-20 flex justify-center items-center gap-2"><Loader className="animate-spin" /> Loading available sessions...</div>;
+  if (loading || !user || isAdmin) {
+    return <div className="text-center py-20 flex justify-center items-center gap-2"><Loader className="animate-spin" /> Loading...</div>;
   }
+
 
   return (
     <div className="max-w-5xl mx-auto py-12 px-6">
@@ -134,12 +158,17 @@ export default function BookSession() {
             <p className="text-slate-500 italic bg-slate-50 p-6 rounded-lg">No available slots at the moment. Please check back soon!</p>
           ) : (
             slots.map(slot => (
-              <button key={slot.id} onClick={() => setSelectedSlot(slot)} className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedSlot?.id === slot.id ? 'border-red-600 bg-red-50 ring-2 ring-red-200' : 'border-slate-200 bg-white hover:border-red-300 hover:shadow-md'}`}>
+              <button key={slot.id} onClick={() => setSelectedSlot(slot)} className={`w-full text-left p-4 rounded-xl border-2 transition-all ${selectedSlot?.id === slot.id ? 'border-red-600 bg-red-50 ring-2 ring-red-200' : 'border-slate-200 bg-white hover:border-red-300 hover:shadow-md'}`}>\
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-800">{new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-                  <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">${slot.price}</span>
+                  <div>
+                    <span className="font-bold text-slate-800">{new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+                    <div className="text-slate-500 mt-1">Time: {formatTime(slot.startTime)}</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded">${slot.price}</span>
+                    <div className="text-slate-500 mt-1 text-xs">{slot.packageName}</div>
+                  </div>
                 </div>
-                <div className="text-slate-500 mt-1">Time: {formatTime(slot.startTime)}</div>
               </button>
             ))
           )}
@@ -157,6 +186,7 @@ export default function BookSession() {
                 <div className="bg-slate-50 p-4 rounded-lg text-sm text-slate-600">
                   Booking for: <br/>
                   <strong className="text-slate-900 text-base">{new Date(selectedSlot.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} at {formatTime(selectedSlot.startTime)}</strong>
+                  <div className="text-xs text-slate-500">{selectedSlot.packageName}</div>
                 </div>
 
                 <div>
@@ -171,7 +201,7 @@ export default function BookSession() {
                 {formError && <p className="text-red-500 text-sm">{formError}</p>}
 
                 <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-lg shadow-lg hover:shadow-xl transition-all transform active:scale-95 disabled:bg-red-400 disabled:cursor-not-allowed flex justify-center items-center gap-2" disabled={isSubmitting}>
-                  {isSubmitting ? <><Loader className="animate-spin" size={20} /> Processing...</> : <><Lock size={16}/> Securely Pay ${selectedSlot.price}</>}
+                  {isSubmitting ? <><Loader className="animate-spin" size={20} /> Processing...</> : <><Lock size={16}/> Securely Pay ${selectedSlot.price}</>}\
                 </button>
                 <p className="text-xs text-center text-slate-400 mt-2">Powered by Stripe</p>
               </form>
