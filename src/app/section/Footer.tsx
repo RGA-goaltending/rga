@@ -8,7 +8,7 @@ import { MapPin, Mail, Phone, ArrowUpRight } from 'lucide-react';
 export default function Footer() {
   const links = [
     { name: "About our School", href: "/about" },
-    { name: "Coaches", href: "/coaches" },
+   
     { name: "Prices", href: "/prices" },
     { name: "Reviews", href: "/reviews" },
     { name: "Gallery", href: "/gallery" },
@@ -116,12 +116,12 @@ export default function Footer() {
                 <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#D52B1E] group-hover:text-[#D52B1E] transition-colors">
                     <Mail size={18} />
                 </div>
-                <span className="border-b border-transparent group-hover:border-white transition-all">narimanvolkov@gmail.com</span>
+                <span className="border-b border-transparent group-hover:border-white transition-all">rgagoaltending@gmail.com</span>
               </a>
 
               <div className="flex items-center gap-3 lg:flex-row-reverse mt-4">
                   <div className="group flex items-center gap-2 text-sm text-neutral-500 cursor-pointer hover:text-[#0039A6] transition-colors">
-                      <MapPin size={14} /> <span>Montreal, QC</span>
+                      <MapPin size={14} /> <span>Toronto , ON</span>
                   </div>
               </div>
             </div>

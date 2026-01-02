@@ -93,8 +93,8 @@ export default function Navbar() {
               <Phone size={10} className="text-red-500" /> <span className="hidden sm:inline">+1 (438) 855-90-83</span>
             </a>
             <span className="text-slate-700">|</span>
-            <a href="mailto:goalieschool1@gmail.com" className="flex items-center gap-2 hover:text-white transition-colors">
-              <Mail size={10} className="text-red-500" /> <span className="hidden sm:inline">goalieschool1@gmail.com</span>
+            <a href="mailto:rgagoaltending@gmail.com" className="flex items-center gap-2 hover:text-white transition-colors">
+              <Mail size={10} className="text-red-500" /> <span className="hidden sm:inline">rgagoaltending@gmail.com</span>
             </a>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function Navbar() {
               */}
               <div className="relative hidden sm:block ml-14 md:ml-20">
                 <div className="text-xl font-black italic tracking-tighter text-white uppercase leading-none">
-                  Goalie<span className="text-red-600">School</span>
+                  Goaltending<span className="text-red-600">Academy</span>
                 </div>
                 <div className="absolute -bottom-1 left-0 w-0 h-[2px] bg-red-600 transition-all duration-300 group-hover:w-full"></div>
               </div>

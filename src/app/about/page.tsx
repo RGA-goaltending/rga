@@ -204,6 +204,7 @@ export default function AboutPage() {
              src="/img/g2.jpg" 
              alt="Hockey History" 
              className="w-full h-full object-cover  brightness-50"
+             fill
            />
         </div>
 
@@ -278,6 +279,7 @@ export default function AboutPage() {
                         <Image
                              src="/img/ab1.jpg"
                               alt="Hockey Rink"
+                              fill
     className="object-cover scale-110 group-hover:scale-100 transition-transform duration-700"
     sizes="(max-width: 768px) 100vw, 50vw"
     priority={false}
@@ -290,18 +292,8 @@ export default function AboutPage() {
             <div className="panel w-full md:w-[100vw] h-auto md:h-screen flex items-center justify-center relative border-b md:border-b-0 md:border-r border-white/5 bg-[#0e0e0e] py-16 md:py-0 px-6 md:px-0">
                  <div className="w-full max-w-7xl grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                     <div className="relative h-[40vh] md:h-[50vh] w-full overflow-hidden rounded-lg shadow-2xl">
-                         <Image 
-                              src="/img/g7.jpg"
-    alt="Hockey Rink"
-    fill
-    className="object-cover scale-110 group-hover:scale-100 transition-transform duration-700"
-    sizes="(max-width: 768px) 100vw, 50vw"
-    priority={false}
-                         />
-                         <div className="absolute bottom-6 left-6 bg-black/80 backdrop-blur-md p-4 border-l-2 border-[#D52B1E]">
-                             <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Evidence</p>
-                             <p className="text-white font-mono text-sm">Retro Soviet Jersey</p>
-                         </div>
+                     
+                       
                     </div>
                     <div className="space-y-6 md:space-y-8">
                         <Quote className="text-[#D52B1E] w-12 h-12 mb-4 opacity-80" />

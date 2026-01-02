@@ -5,7 +5,7 @@ import { db } from '@/app/lib/firebase';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!,
    {
-  apiVersion: '2024-04-10',
+  apiVersion: '2025-11-17',
 });
 
 export async function POST(req: NextRequest) {

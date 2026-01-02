@@ -26,13 +26,7 @@ export default function FounderCTA() {
                 {/* Background for Text Contrast */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-80"></div>
                 
-                {/* Image */}
-                <Image 
-                    src="/img/co1.jpg" 
-                    alt="Nariman Volkov"
-                    fill
-                    className="object-cover object-top  transition-all duration-700 ease-out"
-                />
+                
 
                 {/* Name Overlay */}
                 <div className="absolute bottom-0 left-0 w-full p-8 z-20">
@@ -90,7 +84,7 @@ export default function FounderCTA() {
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-600 mr-2">Socials</span>
                     <SocialIcon icon={<Instagram size={18} />} />
                     <SocialIcon icon={<Facebook size={18} />} />
-                    <SocialIcon icon={<Linkedin size={18} />} />
+                   
                 </div>
 
             </div>

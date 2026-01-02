@@ -77,19 +77,30 @@ export default function AboutTeaser() {
       {/* --- LAYER 2: THE "1972" PORTAL --- */}
       <div 
         ref={zoomTargetRef} 
-        className="absolute z-10 inset-0 flex items-center justify-center bg-black origin-center will-change-transform"
+        className="absolute z-10 inset-0 flex items-center justify-center flex-col bg-black origin-center will-change-transform"
         style={{ backfaceVisibility: 'hidden' }}
       >
          <h1 
-            className="text-[25vw] font-bold leading-none select-none bg-clip-text text-transparent"
+            className="text-[13vw] font-bold leading-none select-none bg-clip-text text-transparent"
             style={{
-                backgroundImage: 'linear-gradient(180deg, #ffffff 33%, #0039A6 33%, #0039A6 66%, #D52B1E 66%)',
+                backgroundImage: 'linear-gradient(180deg, #ffffff 43%, #0039A6 33%, #0039A6 66%, #D52B1E 66%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 transform: 'translateZ(0)',
             }}
          >
-           1972
+           Goaltending
+         </h1>
+         <h1 
+            className="text-[13vw] font-bold leading-none select-none bg-clip-text text-transparent"
+            style={{
+                backgroundImage: 'linear-gradient(180deg, #ffffff 43%, #0039A6 33%, #0039A6 66%, #D52B1E 66%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                transform: 'translateZ(0)',
+            }}
+         >
+           Academy
          </h1>
       </div>
 
@@ -118,7 +129,7 @@ export default function AboutTeaser() {
         <div className="max-w-3xl space-y-8 text-xl md:text-2xl font-light leading-relaxed text-gray-200">
             <Copy delay={0.1}>
                 <p>
-                    My dream began in 2014 at a veterans game with <strong className="text-white font-bold">Phil Esposito</strong>. 
+                    My story began in 2014 at a veterans game with <strong className="text-white font-bold">Phil Esposito</strong>. 
                     I spoke no English, but I showed up with a retro Soviet jersey to honor the &apos;72 Super Series.
                 </p>
             </Copy>

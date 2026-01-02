@@ -28,28 +28,33 @@ export default function CinematicPricing() {
       <div className="relative z-10 max-w-[1400px] mx-auto px-6">
         
         {/* ==================== HEADER ==================== */}
-        <div className="text-center mb-20 relative">
+        <div className="text-center mb-12 relative">
             <div className="inline-flex items-center gap-3 bg-white/10 border border-white/20 px-6 py-2 rounded-full backdrop-blur-md mb-8 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                 <Star size={14} className="text-[#D52B1E] fill-[#D52B1E]" />
                 <span className="text-xs font-bold uppercase tracking-[0.3em] text-white">Elite Training Rates</span>
                 <Star size={14} className="text-[#0039A6] fill-[#0039A6]" />
             </div>
             
-            <div className="mb-6">
+            <div className="mb-2">
                 <Copy>
                     <h2 className="text-7xl md:text-[10rem] font-black uppercase drop-shadow-2xl leading-[0.85]">
                         Price <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-600">List</span>
                     </h2>
                 </Copy>
             </div>
-            
-            <p className="text-gray-400 font-mono text-sm uppercase tracking-widest bg-black/50 inline-block px-4 py-2 rounded border border-white/10">
-                ⚠️ Note: Ice rental fees are paid separately
+        </div>
+
+        {/* ==================== TOP TEXT: HST APPLICABLE ==================== */}
+        <div className="text-center mb-10">
+            <p className="inline-block text-white/90 font-bold uppercase tracking-[0.25em] text-sm border-b border-[#D52B1E] pb-2">
+                <span className="text-[#D52B1E] mr-2">•</span> 
+                HST (13%) Applied to all prices 
+                <span className="text-[#D52B1E] ml-2">•</span>
             </p>
         </div>
 
         {/* ==================== PRICING CARDS ==================== */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-32 relative items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 relative items-start">
             
             {/* CARD 1: INDIVIDUAL (RED) */}
             <div className="group relative bg-[#111] border border-[#333] rounded-[2rem] p-1 overflow-hidden hover:border-[#D52B1E] transition-colors duration-500 shadow-2xl">
@@ -115,7 +120,7 @@ export default function CinematicPricing() {
                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-50 group-hover:opacity-100 transition-opacity"></div>
                 
                 <div className="bg-[#0a0a0a] rounded-[1.8rem] p-8 h-full relative z-10 flex flex-col">
-                    <div class="flex-grow">
+                    <div className="flex-grow">
                         <div className="flex justify-between items-start mb-8">
                             <div className="p-4 bg-white/10 rounded-2xl text-white border border-white/20">
                                 <Activity size={28} />
@@ -138,6 +143,13 @@ export default function CinematicPricing() {
                 </div>
             </div>
 
+        </div>
+
+        {/* ==================== LAST TEXT: EXCLUSIVE OF HST & ICE RENTAL ==================== */}
+        <div className="text-center mb-32 relative z-20">
+            <p className="text-gray-400 font-mono text-sm uppercase tracking-widest bg-black/50 inline-block px-8 py-4 rounded border border-white/10 backdrop-blur-sm">
+                ⚠️ Note: All prices are exclusive of HST • Ice rental fees are paid separately
+            </p>
         </div>
 
         {/* ==================== PROCESS SECTION ==================== */}
