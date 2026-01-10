@@ -24,9 +24,15 @@ const DEFAULT_ITEMS: GalleryItem[] = [
   { image: "/img/g8.jpg", name: "Mono Circuit" },
   { image: "/img/g9.jpg", name: "Lumen-04" },
   { image: "/img/g10.jpg", name: "Shadow Bloom" },
-  { image: "/img/g11.jpg", name: "Shadow Bloom" },
-  { image: "/img/g12.jpg", name: "Shadow Bloom" },
-  { image: "/img/g13.png", name: "Shadow Bloom" },
+  { image: "/img/b1.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b2.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b3.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b4.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b5.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b6.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b8.jpeg", name: "Shadow Bloom" },
+  { image: "/img/b9.jpeg", name: "Shadow Bloom" },
+  
 ];
 
 export default function Gallery({ items = DEFAULT_ITEMS }: GalleryProps) {
@@ -265,7 +271,7 @@ export default function Gallery({ items = DEFAULT_ITEMS }: GalleryProps) {
     <div className="gallery-root">
       <section className="gallery-container" ref={containerRef}>
         <div className="gallery-preview-img" ref={previewRef}></div>
-        <div className="gallery-title" ref={titleRef}></div>
+       
       </section>
     </div>
   );

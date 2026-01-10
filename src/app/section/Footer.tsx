@@ -13,6 +13,7 @@ export default function Footer() {
     { name: "Reviews", href: "/reviews" },
     { name: "Gallery", href: "/gallery" },
     { name: "Contacts", href: "/contacts" },
+    { name:"Camps", href:"/camps" }
   ];
 
   return (
@@ -49,7 +50,7 @@ export default function Footer() {
                 <div className="absolute inset-0 bg-white/10 blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-700"></div>
                 
                 {/* BIG LOGO CONTAINER */}
-                <div className="relative w-48 h-48 md:w-56 md:h-56 grayscale group-hover:grayscale-0 transition-all duration-700 ease-out">
+                <div className="relative w-48 h-48 md:w-56 md:h-56  transition-all duration-700 ease-out">
                     <Image 
                         src="/img/logo.png" 
                         alt="GoalieSchool Logo" 
@@ -61,7 +62,7 @@ export default function Footer() {
 
             <div className="space-y-4 max-w-md">
                  <h2 className="text-3xl font-black uppercase tracking-tighter">
-                    Goalie School <span className="text-[#D52B1E]">Academy</span>
+                    Goaltending <span className="text-[#D52B1E]">Academy</span>
                  </h2>
                  <p className="text-neutral-400 leading-relaxed font-light border-l-2 border-[#0039A6] pl-4">
                     Forging elite goaltenders through the fusion of Soviet discipline and Canadian intensity.

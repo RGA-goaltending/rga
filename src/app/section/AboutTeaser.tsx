@@ -3,53 +3,46 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowRight, Star } from 'lucide-react';
-import Copy from '../components/Copy'; // Ensure this path matches where you saved Copy.tsx
+import { ArrowRight, History, Binary, Crosshair } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 export default function AboutTeaser() {
   const containerRef = useRef(null);
-  const zoomTargetRef = useRef(null);
-  const contentLayerRef = useRef(null);
+  const contentRef = useRef(null);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
       
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top top",
-          end: "+=1500", 
-          scrub: 0.5,
-          pin: true,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
+      // 1. Text Stagger Animation
+      gsap.fromTo(contentRef.current,
+        { y: 50, opacity: 0 },
+        { 
+          y: 0, 
+          opacity: 1, 
+          duration: 1, 
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 70%",
+          }
         }
-      });
+      );
 
-      // --- OPTIMIZED ZOOM SEQUENCE ---
-      // Scale 1972 text up
-      tl.to(zoomTargetRef.current, {
-        scale: 12, 
-        duration: 2,
-        ease: "power2.inOut",
-        force3D: true,
-      })
-      // Fade it out
-      .to(zoomTargetRef.current, {
-        autoAlpha: 0, 
-        duration: 0.2,
-        ease: "power1.out"
-      }, "-=0.5")
-
-      // --- REVEAL CONTENT CONTAINER ---
-      // We only fade in the container here. 
-      // The text inside will animate itself via the <Copy /> component.
-      .fromTo(contentLayerRef.current,
-        { autoAlpha: 0, y: 20 }, 
-        { autoAlpha: 1, y: 0, duration: 0.8, ease: "power2.out" },
-        "-=0.2"
+      // 2. Card Slide In
+      gsap.fromTo(cardRef.current,
+        { x: 50, opacity: 0 },
+        { 
+          x: 0, 
+          opacity: 1, 
+          duration: 1.2, 
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top 70%",
+          }
+        }
       );
 
     }, containerRef);
@@ -58,117 +51,116 @@ export default function AboutTeaser() {
   }, []);
 
   return (
-    <section ref={containerRef} className="relative h-screen w-full bg-black text-white overflow-hidden flex items-center justify-center font-sans">
+    <section ref={containerRef} className="relative py-32 w-full bg-[#050505] text-white overflow-hidden border-t border-white/10 font-sans">
       
-      {/* --- LAYER 1: BACKGROUND VIDEO --- */}
-      <div className="absolute inset-0 z-0 bg-black">
-        <video 
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
-          className="w-full h-full object-cover opacity-60 will-change-transform"
-        >
-           <source src="/img/h1.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-black/50"></div>
+      {/* --- BACKGROUND GRAPHICS --- */}
+      <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
+         {/* Giant Background Number */}
+         <div className="absolute -top-20 -left-20 text-[40vw] font-black text-white/[0.02] leading-none">
+            72
+         </div>
+         {/* Grid Lines */}
+         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:10rem_10rem]"></div>
       </div>
 
-      {/* --- LAYER 2: THE "1972" PORTAL --- */}
-      <div 
-        ref={zoomTargetRef} 
-        className="absolute z-10 inset-0 flex items-center justify-center flex-col bg-black origin-center will-change-transform"
-        style={{ backfaceVisibility: 'hidden' }}
-      >
-         <h1 
-            className="text-[13vw] font-bold leading-none select-none bg-clip-text text-transparent"
-            style={{
-                backgroundImage: 'linear-gradient(180deg, #ffffff 43%, #0039A6 33%, #0039A6 66%, #D52B1E 66%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                transform: 'translateZ(0)',
-            }}
-         >
-           Goaltending
-         </h1>
-         <h1 
-            className="text-[13vw] font-bold leading-none select-none bg-clip-text text-transparent"
-            style={{
-                backgroundImage: 'linear-gradient(180deg, #ffffff 43%, #0039A6 33%, #0039A6 66%, #D52B1E 66%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                transform: 'translateZ(0)',
-            }}
-         >
-           Academy
-         </h1>
-      </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
 
-      {/* --- LAYER 3: CENTERED CONTENT --- */}
-      <div ref={contentLayerRef} className="relative z-20 w-full max-w-5xl mx-auto px-6 text-center flex flex-col items-center justify-center h-full opacity-0 will-change-transform">
-        
-        {/* Top Label */}
-        <div className="mb-8 flex items-center gap-2 border border-white/20 px-4 py-1.5 rounded-full bg-black/60 backdrop-blur-md">
-            <Star size={12} className="text-[#D52B1E] fill-[#D52B1E]" />
-            <span className="text-xs font-bold uppercase tracking-[0.3em] text-white/90">
-                The Origin Story
-            </span>
-        </div>
-
-        {/* MASSIVE HEADLINE (Using Copy) */}
-        <div className="mb-10">
-            <Copy>
-                <h2 className="text-6xl md:text-8xl font-normal uppercase leading-none">
-                    <span className="block text-white">Chance &</span>
-                    <span className="block text-white drop-shadow-2xl">History</span>
-                </h2>
-            </Copy>
-        </div>
-
-        {/* THE STORY TEXT (Using Copy) */}
-        <div className="max-w-3xl space-y-8 text-xl md:text-2xl font-light leading-relaxed text-gray-200">
-            <Copy delay={0.1}>
-                <p>
-                    My story began in 2014 at a veterans game with <strong className="text-white font-bold">Phil Esposito</strong>. 
-                    I spoke no English, but I showed up with a retro Soviet jersey to honor the &apos;72 Super Series.
-                </p>
-            </Copy>
+        {/* --- LEFT: STORY CONTENT --- */}
+        <div ref={contentRef}>
             
-            <Copy delay={0.2}>
-                <p>
-                    He looked at my uniform and jokingly said: <br/>
-                    <span className="text-[#D52B1E] font-serif italic text-3xl block mt-4"> Maybe the USSR national team lacked a goalie like that.</span>
-                </p>
-            </Copy>
+            <div className="inline-flex items-center gap-2 mb-8">
+                <div className="w-2 h-2 bg-[#D52B1E] rounded-full animate-pulse"></div>
+                <span className="text-xs font-mono text-[#D52B1E] uppercase tracking-widest">Historical Record // 2014</span>
+            </div>
 
-            <Copy delay={0.3}>
-                <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
-                    That moment changed everything. I realized I wanted to immerse myself in North American hockey, learning from the true masters of their craft.
-                </p>
-            </Copy>
+            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] mb-8">
+              The <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-600">Origin</span> <br/>
+              Protocol
+            </h2>
+
+            <div className="space-y-8 text-lg text-gray-400 font-light leading-relaxed max-w-xl border-l border-white/10 pl-8">
+               <p>
+                  It started at a veterans game. I showed up wearing a retro Soviet jersey to honor the <strong>1972 Super Series</strong>. I spoke no English, only hockey.
+               </p>
+               <p>
+                  NHL Legend <strong>Phil Esposito</strong> saw the jersey, smiled, and said:
+               </p>
+               <blockquote className="text-white text-2xl font-serif italic">
+                  Maybe the USSR national team lacked a goalie like that.
+               </blockquote>
+            </div>
+
+            <div className="mt-12">
+               <Link href="/about" className="group relative inline-flex items-center gap-4 px-8 py-4 bg-[#111] border border-white/20 hover:border-[#D52B1E] hover:bg-[#D52B1E] transition-all duration-300 rounded-none">
+                   <div className="flex flex-col items-start leading-none">
+                       <span className="text-[10px] uppercase tracking-widest text-gray-500 group-hover:text-white/80 mb-1">Access File</span>
+                       <span className="text-sm font-bold uppercase tracking-widest text-white">Read Full Story</span>
+                   </div>
+                   <ArrowRight className="text-white opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+               </Link>
+            </div>
         </div>
 
-        {/* CTA BUTTON */}
-        <div className="mt-12">
-            <Link href="/about" className="group relative inline-flex items-center gap-4 px-8 py-4 bg-white text-black font-black uppercase tracking-widest text-sm hover:bg-[#D52B1E] hover:text-white transition-all duration-300 rounded-sm">
-                <span>Read Full Legend</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+        {/* --- RIGHT: TACTICAL DATA CARD (CSS Only) --- */}
+        <div ref={cardRef} className="relative">
+            
+            {/* The "Card" Container */}
+            <div className="relative bg-[#0a0a0a] border border-white/10 p-2 rounded-2xl shadow-2xl">
+                
+                {/* Inner Content */}
+                <div className="bg-[#050505] border border-white/5 rounded-xl p-8 relative overflow-hidden">
+                    
+                    {/* Decorative Top Bar */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0039A6] via-[#D52B1E] to-transparent"></div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-6 mb-12">
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                            <Binary className="text-[#0039A6] mb-3" size={20} />
+                            <div className="text-4xl font-mono font-bold text-white mb-1">1972</div>
+                            <div className="text-[10px] uppercase tracking-widest text-gray-500">Summit Series</div>
+                        </div>
+                        <div className="p-4 bg-white/5 rounded-lg border border-white/5">
+                            <Crosshair className="text-[#D52B1E] mb-3" size={20} />
+                            <div className="text-4xl font-mono font-bold text-white mb-1">2014</div>
+                            <div className="text-[10px] uppercase tracking-widest text-gray-500">Origin Year</div>
+                        </div>
+                    </div>
+
+                    {/* Abstract "Map" or "Jersey" Graphic using CSS */}
+                    <div className="relative h-48 w-full bg-[#111] rounded-lg border border-white/5 flex items-center justify-center overflow-hidden mb-8 group-hover:border-white/10 transition-colors">
+                        {/* Abstract Red Lines */}
+                        <div className="absolute w-[150%] h-[20px] bg-[#D52B1E] -rotate-12 translate-y-4 opacity-80 blur-sm"></div>
+                        <div className="absolute w-[150%] h-[10px] bg-[#D52B1E] -rotate-12 -translate-y-4 opacity-60 blur-sm"></div>
+                        
+                        <div className="relative z-10 text-center">
+                             <div className="text-6xl font-black text-white tracking-tighter mix-blend-overlay">CCCP</div>
+                             <div className="text-xs font-mono text-gray-500 uppercase tracking-[0.5em] mt-2">Retro Heritage</div>
+                        </div>
+                    </div>
+
+                    {/* Footer Data */}
+                    <div className="flex justify-between items-center border-t border-white/10 pt-6">
+                        <div>
+                            <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Subject</div>
+                            <div className="text-sm font-bold text-white">Nariman Volkov</div>
+                        </div>
+                        <div className="text-right">
+                             <div className="text-[10px] uppercase tracking-widest text-gray-500 mb-1">Location</div>
+                             <div className="text-sm font-bold text-white">Tampa Bay, FL</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {/* Floating Accents */}
+            <div className="absolute -top-4 -right-4 w-24 h-24 border-t-2 border-r-2 border-[#D52B1E] rounded-tr-3xl opacity-50"></div>
+            <div className="absolute -bottom-4 -left-4 w-24 h-24 border-b-2 border-l-2 border-[#0039A6] rounded-bl-3xl opacity-50"></div>
+
         </div>
 
       </div>
-
-      <style jsx global>{`
-        .text-stroke-white {
-          -webkit-text-stroke: 1px rgba(255,255,255,0.8);
-          color: transparent;
-        }
-        @media (min-width: 768px) {
-            .text-stroke-white {
-              -webkit-text-stroke: 2px rgba(255,255,255,0.8);
-            }
-        }
-      `}</style>
     </section>
   );
 }

@@ -1,36 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/app/lib/firebase';
+import { adminDb } from '@/app/lib/firebaseAdmin'; // Ensure this path matches where you created the file
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-11-17.clover'  // Cast if your types are older than the version string
 });
 
 export async function POST(req: NextRequest) {
-  const { slotId, customerName, customerEmail, userId } = await req.json();
-
-  if (!slotId || !customerName || !customerEmail || !userId) {
-    return NextResponse.json({ error: 'Missing required session information' }, { status: 400 });
-  }
+  let slotId: string | null = null;
 
   try {
-    const slotRef = doc(db, 'training_slots', slotId);
-    const slotSnap = await getDoc(slotRef);
+    const body = await req.json();
+    slotId = body.slotId;
+    const { customerName, customerEmail, userId } = body;
 
-    if (!slotSnap.exists() || slotSnap.data().status !== 'available') {
+    if (!slotId || !customerName || !customerEmail || !userId) {
+      return NextResponse.json({ error: 'Missing required session information' }, { status: 400 });
+    }
+
+    // 1. Use Admin SDK to get the slot (Bypasses Security Rules)
+    const slotRef = adminDb.collection('training_slots').doc(slotId);
+    const slotSnap = await slotRef.get();
+
+    // 2. Check availability
+    if (!slotSnap.exists || slotSnap.data()?.status !== 'available') {
       return NextResponse.json({ error: 'This slot is no longer available.' }, { status: 409 });
     }
 
-    const slot = slotSnap.data();
+    const slot = slotSnap.data()!;
 
-    await updateDoc(slotRef, {
+    // 3. Data Validation
+    if (
+      typeof slot.price !== 'number' ||
+      !slot.packageName ||
+      !slot.date ||
+      !slot.startTime
+    ) {
+      console.error('Invalid slot data:', slot);
+      throw new Error('Corrupt slot data in the database. Please contact support.');
+    }
+
+    const trainingDate = new Date(slot.date);
+    if (isNaN(trainingDate.getTime())) {
+      console.error('Invalid date format:', slot);
+      throw new Error('Corrupt date format in the database.');
+    }
+
+    // 4. Mark as "Pending" (Admin Write)
+    await slotRef.update({
       status: 'pending',
       customerName,
       customerEmail,
-      userId, // Add userId to the document
+      userId,
     });
 
+    // 5. Create Stripe Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -39,9 +63,9 @@ export async function POST(req: NextRequest) {
             currency: 'usd',
             product_data: {
               name: slot.packageName,
-              description: `Training session on ${new Date(slot.date).toLocaleDateString()} at ${slot.startTime}`,
+              description: `Training session on ${trainingDate.toLocaleDateString()} at ${slot.startTime}`,
             },
-            unit_amount: slot.price * 100, // Price in cents
+            unit_amount: slot.price * 100, // Amount in cents
           },
           quantity: 1,
         },
@@ -58,17 +82,36 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
 
-  } catch (error) {
-    console.error('Stripe session creation failed:', error);
-    const slotRef = doc(db, 'training_slots', slotId);
-    // Revert the status if payment initiation fails, removing the pending customer data
-    await updateDoc(slotRef, { 
-      status: 'available', 
-      customerName: null, 
-      customerEmail: null,
-      userId: null,
-    });
+  } catch (error: unknown) { // FIXED: Changed 'any' to 'unknown'
+    console.error('Booking Process Error:', error);
 
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    // 6. Revert Logic (Using Admin SDK)
+    if (slotId) {
+      try {
+        const slotRef = adminDb.collection('training_slots').doc(slotId);
+        const slotSnap = await slotRef.get();
+        
+        // Only revert if it is still "pending"
+        if (slotSnap.exists && slotSnap.data()?.status === 'pending') {
+          await slotRef.update({
+            status: 'available',
+            customerName: null,
+            customerEmail: null,
+            userId: null,
+          });
+          console.log(`Successfully reverted slot ${slotId} to available.`);
+        }
+      } catch (revertError) {
+        console.error(`CRITICAL: Failed to revert slot status for slotId ${slotId}:`, revertError);
+      }
+    }
+
+    // FIXED: Type check the error message
+    let errorMessage = 'An unknown error occurred. Please try again.';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    return NextResponse.json({ error: `Internal Server Error: ${errorMessage}` }, { status: 500 });
   }
 }

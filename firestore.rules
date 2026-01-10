@@ -14,7 +14,7 @@ service cloud.firestore {
       allow read: if request.auth != null;
 
       // ONLY an admin can create, update, or delete slots
-      allow create, delete, update: if request.auth != null && request.auth.token.email == "admin@example.com";
+      allow create, delete, update: if request.auth != null && request.auth.token.email == "codeofsagar@gmail.com";
 
       // A regular user can ONLY update a slot to book it for themselves,
       // and only if it's currently available.

@@ -99,9 +99,7 @@ export default function HeroSection() {
                     <Star size={10} fill="#0039A6" stroke="none" />
                     <Star size={10} fill="white" stroke="none" />
                 </div>
-                <span className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-                    System V.2.0
-                </span>
+               
             </div>
         </div>
 

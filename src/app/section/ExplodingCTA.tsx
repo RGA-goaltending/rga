@@ -1,103 +1,154 @@
 'use client';
 
-import Image from 'next/image';
+import { ReactNode } from 'react';
 import Link from 'next/link';
-import { Mail, Phone, Instagram, Facebook, Linkedin, ArrowUpRight } from 'lucide-react';
+import { Mail, Phone, Instagram, Facebook, ArrowUpRight, MapPin, Globe } from 'lucide-react';
 
 export default function FounderCTA() {
   return (
-    <section className="relative w-full bg-[#050505] text-white overflow-hidden py-16 border-t border-white/10">
+    <section className="relative w-full bg-[#050505] text-white overflow-hidden py-24 border-t border-white/10" id="contact">
       
-      {/* ==================== STATIC BACKGROUND (No Blinking) ==================== */}
+      {/* --- BACKGROUND ACCENTS --- */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] mix-blend-overlay"></div>
-          {/* Static Gradient Washes */}
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#0039A6] opacity-[0.06] blur-[100px] rounded-full"></div>
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#D52B1E] opacity-[0.06] blur-[100px] rounded-full"></div>
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay"></div>
+          {/* Subtle Glows */}
+          <div className="absolute top-1/2 left-1/4 w-[500px] h-[500px] bg-[#0039A6] opacity-[0.04] blur-[120px] rounded-full -translate-y-1/2"></div>
+          <div className="absolute top-1/2 right-1/4 w-[500px] h-[500px] bg-[#D52B1E] opacity-[0.04] blur-[120px] rounded-full -translate-y-1/2"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-6">
         
-        {/* COMPACT CARD LAYOUT */}
-        <div className="flex flex-col md:flex-row items-center bg-[#0a0a0a] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
+        {/* ==================== MAIN CARD CONTAINER ==================== */}
+        <div className="bg-[#0a0a0a] border border-white/10 rounded-[2rem] overflow-hidden relative shadow-2xl">
             
-            {/* ==================== LEFT: IMAGE & NAME ==================== */}
-            <div className="relative w-full md:w-5/12 h-[400px] md:h-[450px] group overflow-hidden">
-                {/* Background for Text Contrast */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 opacity-80"></div>
-                
-                
+            {/* Decorative Top Line */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#D52B1E] via-transparent to-[#0039A6] opacity-50"></div>
 
-                {/* Name Overlay */}
-                <div className="absolute bottom-0 left-0 w-full p-8 z-20">
-                    <p className="text-[#D52B1E] font-bold uppercase tracking-widest text-xs mb-2">Head Coach</p>
-                    <h2 className="text-5xl font-black uppercase tracking-tighter leading-none text-white">
-                        Nariman <br/> Volkov
-                    </h2>
-                </div>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2">
 
-            {/* ==================== RIGHT: INFO & CONTACTS ==================== */}
-            <div className="w-full md:w-7/12 p-8 md:p-12 flex flex-col justify-between h-full space-y-8">
-                
-                {/* Bio Snippet */}
-                <div>
-                    <h3 className="text-2xl font-medium text-white mb-4">Forging Elite Goaltenders.</h3>
-                    <p className="text-gray-400 font-light leading-relaxed max-w-md">
-                        Founder of GoalieSchool.ca. Bringing world-class Russian technique and discipline to the Canadian crease since 2014.
-                    </p>
-                </div>
-
-                {/* Contact Rows */}
-                <div className="space-y-4">
-                    {/* Phone */}
-                    <a href="tel:4388559083" className="flex items-center justify-between p-4 bg-[#111] border border-white/5 rounded-xl hover:border-[#D52B1E] hover:bg-[#161616] transition-all group">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 bg-white/5 rounded-lg text-gray-400 group-hover:text-white transition-colors">
-                                <Phone size={20} />
+                {/* --- LEFT: IDENTITY & MISSION --- */}
+                <div className="p-10 md:p-16 border-b lg:border-b-0 lg:border-r border-white/10 relative">
+                    <div className="flex flex-col justify-between h-full space-y-12">
+                        
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-[#D52B1E] mb-6">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#D52B1E] animate-pulse"></span>
+                                Direct Access
                             </div>
-                            <div>
-                                <span className="block text-[10px] text-gray-500 uppercase tracking-widest font-bold">Direct Line</span>
-                                <span className="block text-lg font-mono text-white">438-855-9083</span>
+                            <h2 className="text-5xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] mb-6">
+                                Nariman <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-600">Volkov</span>
+                            </h2>
+                            <p className="text-gray-400 text-lg max-w-md font-light leading-relaxed">
+                                Founder of GoalieSchool.ca. Bringing elite Russian goaltending discipline and technical precision to the Canadian crease since 2014.
+                            </p>
+                        </div>
+
+                        {/* Location Badge */}
+                        <div className="flex items-center gap-4 text-sm font-mono text-gray-500">
+                            <div className="flex items-center gap-2">
+                                <MapPin size={16} className="text-[#0039A6]" />
+                                <span>Montreal, QC</span>
+                            </div>
+                            <div className="w-1 h-1 bg-gray-700 rounded-full"></div>
+                            <div className="flex items-center gap-2">
+                                <Globe size={16} className="text-[#0039A6]" />
+                                <span>Global Remote Support</span>
                             </div>
                         </div>
-                        <ArrowUpRight className="text-[#D52B1E] opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
-                    </a>
 
-                    {/* Email */}
-                    <a href="mailto:narimanvolkov@gmail.com" className="flex items-center justify-between p-4 bg-[#111] border border-white/5 rounded-xl hover:border-[#0039A6] hover:bg-[#161616] transition-all group">
-                        <div className="flex items-center gap-4">
-                            <div className="p-2 bg-white/5 rounded-lg text-gray-400 group-hover:text-white transition-colors">
-                                <Mail size={20} />
-                            </div>
-                            <div className="overflow-hidden">
-                                <span className="block text-[10px] text-gray-500 uppercase tracking-widest font-bold">Email</span>
-                                <span className="block text-lg font-mono text-white truncate">narimanvolkov@gmail.com</span>
-                            </div>
-                        </div>
-                        <ArrowUpRight className="text-[#0039A6] opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0" />
-                    </a>
+                    </div>
                 </div>
 
-                {/* Socials */}
-                <div className="pt-6 border-t border-white/10 flex items-center gap-4">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-600 mr-2">Socials</span>
-                    <SocialIcon icon={<Instagram size={18} />} />
-                    <SocialIcon icon={<Facebook size={18} />} />
-                   
+                {/* --- RIGHT: ACTION GRID --- */}
+                <div className="p-10 md:p-16 bg-[#080808]">
+                    <div className="grid grid-cols-1 gap-4 h-full">
+                        
+                        {/* PHONE CARD */}
+                        <ContactCard 
+                            href="tel:4388559083"
+                            icon={<Phone size={24} />}
+                            label="Direct Line"
+                            value="438-855-9083"
+                            accentColor="group-hover:text-[#D52B1E]"
+                            borderColor="group-hover:border-[#D52B1E]"
+                        />
+
+                        {/* EMAIL CARD */}
+                        <ContactCard 
+                            href="mailto:narimanvolkov@gmail.com"
+                            icon={<Mail size={24} />}
+                            label="Email Inquiries"
+                            value="narimanvolkov@gmail.com"
+                            accentColor="group-hover:text-[#0039A6]"
+                            borderColor="group-hover:border-[#0039A6]"
+                        />
+
+                        {/* SOCIALS ROW */}
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <SocialCard 
+                                icon={<Instagram size={20} />} 
+                                label="Instagram" 
+                                handle="@goalieschool" 
+                            />
+                            <SocialCard 
+                                icon={<Facebook size={20} />} 
+                                label="Facebook" 
+                                handle="GoalieSchool.ca" 
+                            />
+                        </div>
+
+                    </div>
                 </div>
 
             </div>
-
         </div>
+
       </div>
     </section>
   );
 }
 
-// Compact Social Icon Helper
-const SocialIcon = ({ icon }: { icon: React.ReactNode }) => (
-    <Link href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:bg-white hover:text-black transition-all hover:scale-105">
-        {icon}
+// --- SUB-COMPONENTS WITH TYPES ---
+
+interface ContactCardProps {
+    href: string;
+    icon: ReactNode;
+    label: string;
+    value: string;
+    accentColor: string;
+    borderColor: string;
+}
+
+const ContactCard = ({ href, icon, label, value, accentColor, borderColor }: ContactCardProps) => (
+    <Link href={href} className={`group relative p-6 bg-[#111] border border-white/5 rounded-2xl flex items-center justify-between transition-all duration-300 ${borderColor} hover:bg-[#161616]`}>
+        <div className="flex items-center gap-5">
+            <div className={`p-4 bg-black rounded-xl text-gray-400 border border-white/5 transition-colors ${accentColor}`}>
+                {icon}
+            </div>
+            <div>
+                <span className="block text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">{label}</span>
+                <span className="block text-xl font-mono text-white tracking-tight">{value}</span>
+            </div>
+        </div>
+        <ArrowUpRight className={`text-gray-600 transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 ${accentColor}`} />
+    </Link>
+);
+
+interface SocialCardProps {
+    icon: ReactNode;
+    label: string;
+    handle: string;
+}
+
+const SocialCard = ({ icon, label, handle }: SocialCardProps) => (
+    <Link href="#" className="group p-6 bg-[#111] border border-white/5 rounded-2xl flex flex-col justify-between hover:border-white/20 transition-all hover:bg-[#161616]">
+        <div className="flex justify-between items-start mb-4">
+            <div className="text-gray-400 group-hover:text-white transition-colors">{icon}</div>
+            <ArrowUpRight size={16} className="text-gray-600 group-hover:text-white transition-all opacity-0 group-hover:opacity-100" />
+        </div>
+        <div>
+            <span className="block text-[10px] text-gray-500 uppercase tracking-widest font-bold">{label}</span>
+            <span className="text-sm text-white font-medium">{handle}</span>
+        </div>
     </Link>
 );

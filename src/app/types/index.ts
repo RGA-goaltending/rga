@@ -10,6 +10,8 @@ export interface TrainingSlot {
   customerEmail?: string;
   bookedAt?: string; // ISO String
   userId?: string;
+  bookedCount?: number; // Optional number
+  capacity?: number;    // Optional number
 }
 
 export interface UserProfile {
