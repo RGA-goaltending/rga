@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { Loader, Calendar, MapPin, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore'; // Removed orderBy import
+import { Loader, Calendar, Users, ArrowRight, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 
 interface EventCamp {
@@ -25,16 +25,21 @@ export default function CampsPage() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
+        // 1. Simple Query (No OrderBy to avoid Index errors)
         const q = query(
             collection(db, 'events'), 
-            where('status', '==', 'active'),
-            orderBy('startDate', 'asc')
+            where('status', '==', 'active')
         );
+        
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EventCamp));
+
+        // 2. Sort manually in Javascript
+        data.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
         setEvents(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching camps:", err);
       } finally {
         setLoading(false);
       }
