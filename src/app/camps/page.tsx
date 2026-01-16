@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore'; // Removed orderBy import
-import { Loader, Calendar, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { Loader, Calendar, Users, ArrowRight, ShieldCheck, AlignLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface EventCamp {
@@ -22,19 +22,26 @@ export default function CampsPage() {
   const [events, setEvents] = useState<EventCamp[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // --- HELPER: Fix Timezone Offsets ---
+  // Ensures '2024-03-20' stays 'Mar 20' and doesn't shift to 'Mar 19'
+  const fixDate = (dateString: string) => {
+    if (!dateString) return '';
+    // Appending 'T12:00:00' forces it to Noon, preventing timezone shifts from changing the day
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // 1. Simple Query (No OrderBy to avoid Index errors)
         const q = query(
             collection(db, 'events'), 
             where('status', '==', 'active')
         );
-        
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EventCamp));
 
-        // 2. Sort manually in Javascript
+        // Sort locally to avoid Index errors
         data.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
         setEvents(data);
@@ -85,48 +92,56 @@ export default function CampsPage() {
                  {events.map(event => (
                      <div key={event.id} className="group bg-[#111] border border-white/10 rounded-2xl p-8 hover:border-[#D52B1E] transition-all duration-300 relative overflow-hidden flex flex-col h-full">
                          
-                         {/* Card Background Glow */}
                          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
                          <div className="relative z-10 flex flex-col h-full">
-                             {/* Top Row: Dates & Price */}
-                             <div className="flex justify-between items-start mb-6">
-                                 <div className="flex items-center gap-3 text-[#D52B1E] font-mono text-sm uppercase tracking-widest bg-[#D52B1E]/10 px-3 py-1 rounded">
+                             
+                             {/* TOP ROW: DATE BADGE & PRICE */}
+                             <div className="flex justify-between items-start mb-8">
+                                 <div className="flex items-center gap-3 text-[#D52B1E] font-mono text-xs md:text-sm uppercase tracking-widest bg-[#D52B1E]/10 px-4 py-2 rounded-lg border border-[#D52B1E]/20">
                                      <Calendar size={14} />
-                                     {new Date(event.startDate).toLocaleDateString('en-US', {month: 'short', day:'numeric'})} — 
-                                     {new Date(event.endDate).toLocaleDateString('en-US', {month: 'short', day:'numeric'})}
+                                     {fixDate(event.startDate)} — {fixDate(event.endDate)}
                                  </div>
-                                 <div className="text-3xl font-black text-white">${event.price}</div>
+                                 <div className="text-3xl font-black text-white tracking-tight">${event.price}</div>
                              </div>
 
-                             {/* Title & Desc */}
-                             <h3 className="text-3xl font-black uppercase mb-4 leading-none group-hover:text-[#D52B1E] transition-colors">{event.title}</h3>
-                             <p className="text-gray-400 font-light leading-relaxed mb-8 flex-grow">
-                                 {event.description}
-                             </p>
+                             {/* TITLE */}
+                             <h3 className="text-3xl md:text-4xl font-black uppercase mb-6 leading-none group-hover:text-[#D52B1E] transition-colors">
+                                {event.title}
+                             </h3>
 
-                             {/* Stats Row */}
+                             {/* DESCRIPTION (FIXED READABILITY) */}
+                             <div className="flex gap-4 mb-8 flex-grow">
+                                <div className="mt-1 flex-shrink-0 opacity-50">
+                                    <AlignLeft size={20} />
+                                </div>
+                                <p className="text-gray-300 font-light leading-7 text-base whitespace-pre-wrap">
+                                    {event.description}
+                                </p>
+                             </div>
+
+                             {/* STATS ROW */}
                              <div className="grid grid-cols-2 gap-4 mb-8 pt-6 border-t border-white/10">
                                  <div>
                                      <span className="block text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Availability</span>
-                                     <div className="flex items-center gap-2 text-white font-mono">
+                                     <div className="flex items-center gap-2 text-white font-mono text-sm">
                                          <Users size={16} className="text-[#0039A6]" />
                                          {event.bookedCount} / {event.capacity} Filled
                                      </div>
                                  </div>
                                  <div>
                                      <span className="block text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Status</span>
-                                     <div className="flex items-center gap-2 text-[#D52B1E] font-mono uppercase">
+                                     <div className="flex items-center gap-2 text-[#D52B1E] font-mono uppercase text-sm">
                                          <ShieldCheck size={16} />
                                          Registration Open
                                      </div>
                                  </div>
                              </div>
 
-                             {/* Action Button */}
+                             {/* ACTION BUTTON */}
                              <Link 
                                 href="/book" 
-                                className="w-full py-4 bg-white text-black font-black uppercase tracking-widest text-center hover:bg-[#D52B1E] hover:text-white transition-all rounded"
+                                className="w-full py-4 bg-white text-black font-black uppercase tracking-widest text-center hover:bg-[#D52B1E] hover:text-white transition-all rounded shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(213,43,30,0.4)]"
                              >
                                 Register Now
                              </Link>

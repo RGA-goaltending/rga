@@ -1,19 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { auth, db, storage } from '../lib/firebase'; // Ensure storage is imported
+import { auth, db, storage } from '../lib/firebase';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, addDoc, query, onSnapshot, deleteDoc, doc, orderBy } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Storage imports
+import { collection, addDoc, query, onSnapshot, deleteDoc, doc, orderBy, updateDoc } from 'firebase/firestore'; // Added updateDoc
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
   Trash2, Plus, Loader, Calendar, Layers, Megaphone, 
   Settings, DollarSign, ShoppingBag, CheckCircle, 
-  User, Users as UsersIcon, Infinity, LogOut, ArrowLeft, Image as ImageIcon, AlignLeft, UploadCloud 
+  User, Users as UsersIcon, Infinity, LogOut, ArrowLeft, Image as ImageIcon, AlignLeft, UploadCloud, Pencil, X 
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Footer from '../section/Footer'; // Changed path based on your previous code
+import Footer from '../section/Footer'; 
 
 // --- TYPES ---
 interface TrainingSlot {
@@ -76,57 +76,42 @@ export default function AdminDashboard() {
   const [pkgForm, setPkgForm] = useState({ name: '', price: 0, price5: 0, price10: 0, peopleCount: 1, maxQuantity: 0 });
   const [isLimited, setIsLimited] = useState(false);
   const [isGroup, setIsGroup] = useState(false);
-  const [eventForm, setEventForm] = useState({ title: '', description: '', startDate: '', endDate: '', price: 0, capacity: 20 });
   
-  // --- GALLERY FORM STATE ---
+  // EVENT EDITING STATE
+  const [eventForm, setEventForm] = useState({ title: '', description: '', startDate: '', endDate: '', price: 0, capacity: 20 });
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+
+  // GALLERY EDITING STATE
   const [galleryDescription, setGalleryDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [editingGalleryId, setEditingGalleryId] = useState<string | null>(null); // For editing description only
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
   // --- FETCHERS ---
-  const fetchSlots = () => {
-    const q = query(collection(db, "training_slots"), orderBy("date"));
-    onSnapshot(q, (snap) => {
-        setSlots(snap.docs.map(d => ({ id: d.id, ...d.data() } as TrainingSlot)));
-        setSlotsLoading(false);
-    });
-  };
-
-  const fetchPackages = () => {
-    const q = query(collection(db, "packages"), orderBy("order"));
-    onSnapshot(q, (snap) => {
-        const pkgs = snap.docs.map(d => ({ id: d.id, ...d.data() } as PackageTier));
-        setPackages(pkgs);
-        if (pkgs.length > 0 && !slotForm.packageName) {
-            setSlotForm(prev => ({ ...prev, packageName: pkgs[0].name, price: pkgs[0].price }));
-        }
-    });
-  };
-
-  const fetchEvents = () => {
-    const q = query(collection(db, "events"), orderBy("startDate"));
-    onSnapshot(q, (snap) => {
-        setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() } as EventCamp)));
-    });
-  };
-
-  const fetchGallery = () => {
-    const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snap) => {
-        setGalleryItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as GalleryItem)));
-    });
-  };
-
-  // --- AUTH CHECK ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
       if (user && user.email === adminEmail) {
         setAuthorized(true);
-        fetchSlots(); fetchPackages(); fetchEvents(); fetchGallery(); 
+        
+        // Listeners
+        onSnapshot(query(collection(db, "training_slots"), orderBy("date")), (snap) => {
+            setSlots(snap.docs.map(d => ({ id: d.id, ...d.data() } as TrainingSlot)));
+            setSlotsLoading(false);
+        });
+        onSnapshot(query(collection(db, "packages"), orderBy("order")), (snap) => {
+            setPackages(snap.docs.map(d => ({ id: d.id, ...d.data() } as PackageTier)));
+        });
+        onSnapshot(query(collection(db, "events"), orderBy("startDate")), (snap) => {
+            setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() } as EventCamp)));
+        });
+        onSnapshot(query(collection(db, "gallery"), orderBy("createdAt", "desc")), (snap) => {
+            setGalleryItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as GalleryItem)));
+        });
+
       } else {
         router.push('/login');
       }
@@ -135,7 +120,7 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, [router]);
 
-  // --- SUBMIT HANDLERS ---
+  // --- SLOT HANDLER ---
   const handleSlotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -154,6 +139,7 @@ export default function AdminDashboard() {
     setIsSubmitting(false);
   };
 
+  // --- PACKAGE HANDLER ---
   const handlePackageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -175,26 +161,67 @@ export default function AdminDashboard() {
     setIsSubmitting(false);
   };
 
+  // =========================================================
+  // --- EVENT / CAMP HANDLERS (EDIT ADDED) ---
+  // =========================================================
+  
+  // 1. Fill form with existing data
+  const handleEditEvent = (event: EventCamp) => {
+    setEditingEventId(event.id);
+    setEventForm({
+        title: event.title,
+        description: event.description,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        price: event.price,
+        capacity: event.capacity
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to form
+  };
+
+  // 2. Cancel Edit
+  const cancelEventEdit = () => {
+    setEditingEventId(null);
+    setEventForm({ title: '', description: '', startDate: '', endDate: '', price: 0, capacity: 20 });
+  };
+
+  // 3. Submit (Check if Add or Update)
   const handleEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, "events"), {
+      const eventData = {
         ...eventForm,
         price: Number(eventForm.price),
         capacity: Number(eventForm.capacity),
-        bookedCount: 0,
-        status: 'active',
-        createdAt: new Date().toISOString()
-      });
-      setEventForm({ title: '', description: '', startDate: '', endDate: '', price: 0, capacity: 20 });
-      setSuccessMsg('Camp Announced');
+        // If editing, keep existing status, otherwise default to active
+        status: editingEventId ? events.find(e => e.id === editingEventId)?.status : 'active',
+      };
+
+      if (editingEventId) {
+        // UPDATE EXISTING
+        await updateDoc(doc(db, "events", editingEventId), eventData);
+        setSuccessMsg('Camp Updated Successfully');
+      } else {
+        // CREATE NEW
+        await addDoc(collection(db, "events"), {
+            ...eventData,
+            bookedCount: 0,
+            createdAt: new Date().toISOString()
+        });
+        setSuccessMsg('Camp Announced');
+      }
+
+      cancelEventEdit(); // Reset Form
       setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err) { console.error(err); alert("Error posting event"); }
+    } catch (err) { console.error(err); alert("Error saving event"); }
     setIsSubmitting(false);
   };
 
-  // --- GALLERY UPLOAD HANDLER ---
+  // =========================================================
+  // --- GALLERY HANDLERS (EDIT DESCRIPTION ADDED) ---
+  // =========================================================
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
         const file = e.target.files[0];
@@ -203,43 +230,69 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleEditGallery = (item: GalleryItem) => {
+      setEditingGalleryId(item.id);
+      setGalleryDescription(item.description);
+      setPreviewUrl(item.imageUrl); // Show existing image
+      setSelectedFile(null); // Reset file input
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelGalleryEdit = () => {
+      setEditingGalleryId(null);
+      setGalleryDescription('');
+      setPreviewUrl(null);
+      setSelectedFile(null);
+  };
+
   const handleGallerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !galleryDescription) {
-        alert("Please select an image and enter a description.");
+    
+    // Validation
+    if (!editingGalleryId && !selectedFile) {
+        alert("Please select an image.");
         return;
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Upload Image to Storage
-      const storageRef = ref(storage, `gallery/${Date.now()}_${selectedFile.name}`);
-      await uploadBytes(storageRef, selectedFile);
-      
-      // 2. Get Download URL
-      const url = await getDownloadURL(storageRef);
+      let url = previewUrl; // Default to existing URL if editing
 
-      // 3. Save Data to Firestore
-      await addDoc(collection(db, "gallery"), {
-        imageUrl: url,
-        description: galleryDescription,
-        createdAt: new Date().toISOString()
-      });
+      // 1. Upload NEW Image (if selected)
+      if (selectedFile) {
+          const storageRef = ref(storage, `gallery/${Date.now()}_${selectedFile.name}`);
+          await uploadBytes(storageRef, selectedFile);
+          url = await getDownloadURL(storageRef);
+      }
 
-      // Reset
-      setGalleryDescription('');
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setSuccessMsg('Photo Uploaded Successfully');
+      if (editingGalleryId) {
+          // UPDATE
+          await updateDoc(doc(db, "gallery", editingGalleryId), {
+              imageUrl: url, // Updates image if new one selected, else keeps old
+              description: galleryDescription
+          });
+          setSuccessMsg('Photo Updated');
+      } else {
+          // CREATE
+          await addDoc(collection(db, "gallery"), {
+            imageUrl: url,
+            description: galleryDescription,
+            createdAt: new Date().toISOString()
+          });
+          setSuccessMsg('Photo Uploaded');
+      }
+
+      cancelGalleryEdit(); // Reset
       setTimeout(() => setSuccessMsg(''), 3000);
 
     } catch (err) { 
         console.error(err); 
-        alert("Error uploading photo. Check Storage Rules."); 
+        alert("Error saving photo."); 
     }
     setIsSubmitting(false);
   };
 
+  // GENERIC DELETE
   const handleDelete = async (collectionName: string, id: string) => {
     if (confirm("Permanently delete this item?")) {
         await deleteDoc(doc(db, collectionName, id));
@@ -274,18 +327,10 @@ export default function AdminDashboard() {
             
             <div className="w-full overflow-x-auto pb-2 -mb-2">
                 <div className="flex gap-2 md:gap-4 min-w-max">
-                    <button onClick={() => setActiveTab('schedule')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'schedule' ? 'bg-white text-black' : 'text-gray-500 hover:text-white bg-white/5'}`}>
-                        <Calendar size={14} /> Schedule
-                    </button>
-                    <button onClick={() => setActiveTab('packages')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'packages' ? 'bg-white text-black' : 'text-gray-500 hover:text-white bg-white/5'}`}>
-                        <Settings size={14} /> Packages
-                    </button>
-                    <button onClick={() => setActiveTab('events')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'events' ? 'bg-[#D52B1E] text-white' : 'text-gray-500 hover:text-white bg-white/5'}`}>
-                        <Megaphone size={14} /> Camps
-                    </button>
-                    <button onClick={() => setActiveTab('gallery')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'gallery' ? 'bg-[#D52B1E] text-white' : 'text-gray-500 hover:text-white bg-white/5'}`}>
-                        <ImageIcon size={14} /> Gallery
-                    </button>
+                    <button onClick={() => setActiveTab('schedule')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'schedule' ? 'bg-white text-black' : 'text-gray-500 hover:text-white bg-white/5'}`}><Calendar size={14} /> Schedule</button>
+                    <button onClick={() => setActiveTab('packages')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'packages' ? 'bg-white text-black' : 'text-gray-500 hover:text-white bg-white/5'}`}><Settings size={14} /> Packages</button>
+                    <button onClick={() => setActiveTab('events')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'events' ? 'bg-[#D52B1E] text-white' : 'text-gray-500 hover:text-white bg-white/5'}`}><Megaphone size={14} /> Camps</button>
+                    <button onClick={() => setActiveTab('gallery')} className={`flex items-center gap-2 px-4 py-3 md:py-2 text-xs font-bold uppercase tracking-widest transition-all rounded ${activeTab === 'gallery' ? 'bg-[#D52B1E] text-white' : 'text-gray-500 hover:text-white bg-white/5'}`}><ImageIcon size={14} /> Gallery</button>
                 </div>
             </div>
           </div>
@@ -326,27 +371,111 @@ export default function AdminDashboard() {
             </div>
         )}
 
-        {/* === CAMPS TAB === */}
+        {/* === CAMPS TAB (NOW WITH EDITING) === */}
         {activeTab === 'events' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-1 bg-[#111] border border-white/10 p-6 rounded-xl"><h2 className="text-lg font-bold uppercase tracking-wide mb-6 flex items-center gap-2 text-[#D52B1E]"><Megaphone size={18} /> Announce Camp</h2><form onSubmit={handleEventSubmit} className="space-y-4"><div className="space-y-1"><label className="text-[10px] uppercase text-gray-500 font-bold">Title</label><input type="text" placeholder="e.g. March Break Camp" required className="w-full bg-black/50 border border-white/20 p-3 text-white text-sm rounded focus:border-[#D52B1E] outline-none" value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})} /></div><div className="space-y-1"><label className="text-[10px] uppercase text-gray-500 font-bold">Description</label><textarea placeholder="Camp details..." required className="w-full bg-black/50 border border-white/20 p-3 text-white text-xs h-20 rounded focus:border-[#D52B1E] outline-none" value={eventForm.description} onChange={e => setEventForm({...eventForm, description: e.target.value})} /></div><div className="grid grid-cols-2 gap-3"><input type="date" required className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.startDate} onChange={e => setEventForm({...eventForm, startDate: e.target.value})} /><input type="date" required className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.endDate} onChange={e => setEventForm({...eventForm, endDate: e.target.value})} /></div><div className="grid grid-cols-2 gap-3"><input type="number" required placeholder="Price $" className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.price} onChange={e => setEventForm({...eventForm, price: Number(e.target.value)})} /><input type="number" required placeholder="Capacity" className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.capacity} onChange={e => setEventForm({...eventForm, capacity: Number(e.target.value)})} /></div><button disabled={isSubmitting} className="w-full bg-white text-black py-3 font-bold uppercase text-xs hover:bg-[#D52B1E] hover:text-white transition-colors rounded">{isSubmitting ? 'Posting...' : 'Post Announcement'}</button>{successMsg && <p className="text-green-500 text-xs text-center">{successMsg}</p>}</form></div>
-                <div className="lg:col-span-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-left min-w-[500px]"><thead className="bg-white/5 border-b border-white/10"><tr><th className="p-4 text-[10px] text-gray-400 uppercase">Camp Name</th><th className="p-4 text-[10px] text-gray-400 uppercase">Dates</th><th className="p-4 text-[10px] text-gray-400 uppercase">Price</th><th className="p-4 text-right"></th></tr></thead><tbody className="divide-y divide-white/5 text-sm">{events.map(e => (<tr key={e.id} className="hover:bg-white/5"><td className="p-4 font-bold uppercase">{e.title}</td><td className="p-4 font-mono text-xs">{e.startDate} to {e.endDate}</td><td className="p-4 font-mono">${e.price}</td><td className="p-4 text-right"><button onClick={() => handleDelete('events', e.id)} className="text-gray-600 hover:text-[#D52B1E]"><Trash2 size={16}/></button></td></tr>))}</tbody></table></div></div>
+                {/* CAMP FORM */}
+                <div className="lg:col-span-1 bg-[#111] border border-white/10 p-6 rounded-xl relative">
+                    <h2 className="text-lg font-bold uppercase tracking-wide mb-6 flex items-center gap-2 text-[#D52B1E]">
+                        {editingEventId ? <Pencil size={18} /> : <Megaphone size={18} />} 
+                        {editingEventId ? ' Edit Camp' : ' Announce Camp'}
+                    </h2>
+                    
+                    {/* EDITING INDICATOR */}
+                    {editingEventId && (
+                        <div className="mb-4 flex items-center justify-between bg-[#D52B1E]/10 p-2 rounded border border-[#D52B1E]/30">
+                            <span className="text-[10px] text-[#D52B1E] font-bold uppercase">Editing Mode</span>
+                            <button onClick={cancelEventEdit} className="text-gray-400 hover:text-white"><X size={14}/></button>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleEventSubmit} className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] uppercase text-gray-500 font-bold">Title</label>
+                            <input type="text" placeholder="e.g. March Break Camp" required className="w-full bg-black/50 border border-white/20 p-3 text-white text-sm rounded focus:border-[#D52B1E] outline-none" value={eventForm.title} onChange={e => setEventForm({...eventForm, title: e.target.value})} />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] uppercase text-gray-500 font-bold">Description</label>
+                            <textarea placeholder="Camp details..." required className="w-full bg-black/50 border border-white/20 p-3 text-white text-xs h-20 rounded focus:border-[#D52B1E] outline-none" value={eventForm.description} onChange={e => setEventForm({...eventForm, description: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input type="date" required className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.startDate} onChange={e => setEventForm({...eventForm, startDate: e.target.value})} />
+                            <input type="date" required className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.endDate} onChange={e => setEventForm({...eventForm, endDate: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <input type="number" required placeholder="Price $" className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.price} onChange={e => setEventForm({...eventForm, price: Number(e.target.value)})} />
+                            <input type="number" required placeholder="Capacity" className="bg-black/50 border border-white/20 p-3 text-white text-xs rounded" value={eventForm.capacity} onChange={e => setEventForm({...eventForm, capacity: Number(e.target.value)})} />
+                        </div>
+                        
+                        <div className="flex gap-2">
+                            {editingEventId && (
+                                <button type="button" onClick={cancelEventEdit} className="w-1/3 bg-white/10 text-white py-3 font-bold uppercase text-xs hover:bg-white/20 transition-colors rounded">Cancel</button>
+                            )}
+                            <button disabled={isSubmitting} className="flex-grow bg-white text-black py-3 font-bold uppercase text-xs hover:bg-[#D52B1E] hover:text-white transition-colors rounded">
+                                {isSubmitting ? 'Saving...' : editingEventId ? 'Update Camp' : 'Post Announcement'}
+                            </button>
+                        </div>
+                        
+                        {successMsg && <p className="text-green-500 text-xs text-center">{successMsg}</p>}
+                    </form>
+                </div>
+
+                {/* EVENTS LIST */}
+                <div className="lg:col-span-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left min-w-[500px]">
+                            <thead className="bg-white/5 border-b border-white/10">
+                                <tr>
+                                    <th className="p-4 text-[10px] text-gray-400 uppercase">Camp Name</th>
+                                    <th className="p-4 text-[10px] text-gray-400 uppercase">Dates</th>
+                                    <th className="p-4 text-[10px] text-gray-400 uppercase">Price</th>
+                                    <th className="p-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 text-sm">
+                                {events.map(e => (
+                                    <tr key={e.id} className={`hover:bg-white/5 ${editingEventId === e.id ? 'bg-[#D52B1E]/10' : ''}`}>
+                                        <td className="p-4 font-bold uppercase">{e.title}</td>
+                                        <td className="p-4 font-mono text-xs">{e.startDate} to {e.endDate}</td>
+                                        <td className="p-4 font-mono">${e.price}</td>
+                                        <td className="p-4 text-right flex justify-end gap-2">
+                                            {/* EDIT BUTTON */}
+                                            <button onClick={() => handleEditEvent(e)} className="text-gray-400 hover:text-white p-2 bg-white/5 rounded"><Pencil size={14}/></button>
+                                            <button onClick={() => handleDelete('events', e.id)} className="text-gray-600 hover:text-[#D52B1E] p-2"><Trash2 size={14}/></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {events.length === 0 && (
+                                    <tr><td colSpan={4} className="p-8 text-center text-gray-600 text-xs uppercase">No active camps.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         )}
 
-        {/* === GALLERY TAB (NEW WITH UPLOAD) === */}
+        {/* === GALLERY TAB (WITH EDIT) === */}
         {activeTab === 'gallery' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* UPLOAD FORM */}
+                {/* UPLOAD/EDIT FORM */}
                 <div className="lg:col-span-1 bg-[#111] border border-white/10 p-6 rounded-xl relative">
                     <h2 className="text-lg font-bold uppercase tracking-wide mb-6 flex items-center gap-2 text-[#D52B1E]">
-                        <Plus size={18} /> Add Photo
+                        {editingGalleryId ? <Pencil size={18} /> : <Plus size={18} />} 
+                        {editingGalleryId ? ' Edit Photo' : ' Add Photo'}
                     </h2>
+
+                    {editingGalleryId && (
+                        <div className="mb-4 flex items-center justify-between bg-[#D52B1E]/10 p-2 rounded border border-[#D52B1E]/30">
+                            <span className="text-[10px] text-[#D52B1E] font-bold uppercase">Editing Mode</span>
+                            <button onClick={cancelGalleryEdit} className="text-gray-400 hover:text-white"><X size={14}/></button>
+                        </div>
+                    )}
+
                     <form onSubmit={handleGallerySubmit} className="space-y-4">
                         
-                        {/* Custom File Input */}
                         <div className="space-y-2">
-                            <label className="text-[10px] uppercase text-gray-500 font-bold">Select Image</label>
+                            <label className="text-[10px] uppercase text-gray-500 font-bold">Image {editingGalleryId ? '(Optional to change)' : ''}</label>
                             <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-lg cursor-pointer bg-black/50 hover:bg-black hover:border-[#D52B1E] transition-all relative overflow-hidden group">
                                 {previewUrl ? (
                                     <img src={previewUrl} alt="Preview" className="w-full h-full object-cover opacity-60 group-hover:opacity-40" />
@@ -374,9 +503,14 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        <button disabled={isSubmitting} className="w-full bg-white text-black py-3 font-bold uppercase text-xs hover:bg-[#D52B1E] hover:text-white transition-colors rounded shadow-lg">
-                            {isSubmitting ? 'Uploading...' : 'Save to Gallery'}
-                        </button>
+                        <div className="flex gap-2">
+                            {editingGalleryId && (
+                                <button type="button" onClick={cancelGalleryEdit} className="w-1/3 bg-white/10 text-white py-3 font-bold uppercase text-xs hover:bg-white/20 transition-colors rounded">Cancel</button>
+                            )}
+                            <button disabled={isSubmitting} className="flex-grow bg-white text-black py-3 font-bold uppercase text-xs hover:bg-[#D52B1E] hover:text-white transition-colors rounded shadow-lg">
+                                {isSubmitting ? 'Saving...' : editingGalleryId ? 'Update Photo' : 'Save to Gallery'}
+                            </button>
+                        </div>
                         {successMsg && <p className="text-green-500 text-xs text-center">{successMsg}</p>}
                     </form>
                 </div>
@@ -385,16 +519,14 @@ export default function AdminDashboard() {
                 <div className="lg:col-span-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden p-6">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {galleryItems.map(item => (
-                            <div key={item.id} className="relative group aspect-square bg-black border border-white/10 rounded-lg overflow-hidden">
+                            <div key={item.id} className={`relative group aspect-square bg-black border border-white/10 rounded-lg overflow-hidden ${editingGalleryId === item.id ? 'ring-2 ring-[#D52B1E]' : ''}`}>
                                 <img src={item.imageUrl} alt="Gallery" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                                     <p className="text-xs text-white line-clamp-2 mb-2">{item.description}</p>
-                                    <button 
-                                        onClick={() => handleDelete('gallery', item.id)}
-                                        className="text-[10px] text-red-500 hover:text-red-400 font-bold uppercase tracking-widest flex items-center gap-1"
-                                    >
-                                        <Trash2 size={12} /> Delete
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleEditGallery(item)} className="text-[10px] text-white bg-white/10 hover:bg-white/20 p-2 rounded flex-1 text-center font-bold uppercase">Edit</button>
+                                        <button onClick={() => handleDelete('gallery', item.id)} className="text-[10px] text-red-500 bg-red-500/10 hover:bg-red-500/20 p-2 rounded flex-1 text-center font-bold uppercase"><Trash2 size={12} className="mx-auto"/></button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
