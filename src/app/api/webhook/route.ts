@@ -13,7 +13,7 @@ const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 export async function POST(req: Request) {
   const body = await req.text();
   
-  // FIX: headers() is now async in Next.js 15
+  // FIX: await headers() before calling .get()
   const headerList = await headers();
   const sig = headerList.get('stripe-signature') as string;
 
@@ -21,9 +21,10 @@ export async function POST(req: Request) {
 
   try {
     event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
-  } catch (err: any) {
-    console.error(`Webhook Error: ${err.message}`);
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`Webhook Error: ${errorMessage}`);
+    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
   }
 
   // Handle the event
@@ -31,7 +32,8 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session;
 
     // Extract data
-    const { bookingId, slotId, userId } = session.metadata!;
+    const metadata = session.metadata || {};
+    const { bookingId, slotId, userId } = metadata;
     const customerEmail = session.customer_details?.email;
     const customerName = session.customer_details?.name;
 
@@ -39,15 +41,17 @@ export async function POST(req: Request) {
         console.log(`💰 Payment received for Booking: ${bookingId}`);
 
         // 1. Mark Booking as PAID
-        await adminDb.collection('bookings').doc(bookingId).update({
-            status: 'paid',
-            stripeSessionId: session.id,
-            amountPaid: session.amount_total ? session.amount_total / 100 : 0,
-            paidAt: new Date().toISOString()
-        });
+        if (bookingId) {
+            await adminDb.collection('bookings').doc(bookingId).update({
+                status: 'paid',
+                stripeSessionId: session.id,
+                amountPaid: session.amount_total ? session.amount_total / 100 : 0,
+                paidAt: new Date().toISOString()
+            });
+        }
 
         // 2. Mark Slot as SOLD OUT
-        if (slotId) {
+        if (slotId && userId) {
             await adminDb.collection('training_slots').doc(slotId).update({
                 status: 'sold_out',
                 bookedBy: userId,
@@ -70,7 +74,7 @@ export async function POST(req: Request) {
                 to: customerEmail,
                 subject: '✅ Payment Received: Session Confirmed',
                 text: `
-                  Hi ${customerName},
+                  Hi ${customerName || 'Goalie'},
 
                   Your payment was successful! Your training session is now fully secured.
                   
