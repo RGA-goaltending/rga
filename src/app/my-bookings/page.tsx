@@ -5,9 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, getDoc, doc } from 'firebase/firestore'; 
 import { useRouter } from 'next/navigation';
-import { Loader, Clock, Package, CheckCircle, History, Shield, AlertCircle, CreditCard, XCircle } from 'lucide-react';
+import { Loader, Clock, Package, CheckCircle, History, Shield, AlertCircle, CreditCard, HelpCircle } from 'lucide-react';
 import Footer from '../section/Footer'; 
 
+// Define the structure of a Booking for the frontend
 interface MyBooking {
   id: string; 
   slotId: string;
@@ -16,7 +17,7 @@ interface MyBooking {
   date: string;
   startTime: string;
   price: number;
-  status: 'pending' | 'approved' | 'paid' | 'rejected';
+  status: string; // e.g. 'pending', 'approved', 'paid'
 }
 
 export default function MyBookings() {
@@ -25,17 +26,17 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState<MyBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Auth Check
+  // 1. Auth Check: Redirect to login if not signed in
   useEffect(() => {
     if (!loading && !user) router.push('/login');
   }, [user, loading, router]);
 
-  // 2. Fetch Bookings (Updated for Request Flow)
+  // 2. Fetch Bookings from Firestore
   useEffect(() => {
     const fetchBookings = async () => {
       if (user) {
         try {
-          // Query the root 'bookings' collection (where the Request API saves them)
+          // Query the 'bookings' collection for the current user
           const q = query(
             collection(db, 'bookings'),
             where('userId', '==', user.uid),
@@ -46,32 +47,28 @@ export default function MyBookings() {
           
           const bookingPromises = querySnapshot.docs.map(async (bookingDoc) => {
             const bookingData = bookingDoc.data();
-            
-            // In the new flow, slotId is inside the document, not a parent
             const slotId = bookingData.slotId;
             
             if (!slotId) return null;
 
-            // Fetch Slot Data to get the Date & Time
+            // Fetch details from the original slot (for date/time)
             const slotSnap = await getDoc(doc(db, 'training_slots', slotId));
-            
-            // Even if slot is "locked/requested", the doc still exists, so we can read it
-            if (!slotSnap.exists()) return null;
-
-            const slotData = slotSnap.data();
+            const slotData = slotSnap.exists() ? slotSnap.data() : {};
 
             return {
-              id: bookingDoc.id,
+              id: bookingDoc.id, // The Booking ID
               slotId: slotId,
               bookedAt: bookingData.createdAt,
-              packageName: bookingData.packageName || slotData.packageName, // Use booking data if available
-              date: slotData.date,
-              startTime: slotData.startTime,
-              price: bookingData.price || slotData.price,
+              // Use booking data first (safer), fallback to slot data
+              packageName: bookingData.packageName || slotData.packageName || 'Unknown Package',
+              date: slotData.date || bookingData.trainingDate || 'Date TBD',
+              startTime: slotData.startTime || bookingData.trainingTime || 'Time TBD',
+              price: bookingData.price || slotData.price || 0,
               status: bookingData.status || 'pending'
             } as MyBooking;
           });
 
+          // Wait for all data to load
           const results = await Promise.all(bookingPromises);
           setBookings(results.filter((b): b is MyBooking => b !== null));
 
@@ -86,14 +83,14 @@ export default function MyBookings() {
     if (user) fetchBookings();
   }, [user]);
 
-  // --- PAYMENT HANDLER ---
+  // 3. Payment Logic: Trigger Stripe when "Pay Now" is clicked
   const handlePayNow = async (booking: MyBooking) => {
     try {
         const res = await fetch('/api/checkout_sessions', {
             method: 'POST', 
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ 
-                bookingId: booking.id, // We pass the Booking ID to update it later
+                bookingId: booking.id, // Critical: We send the Booking ID to update it to 'paid' later
                 slotId: booking.slotId,
                 price: booking.price,
                 packageName: booking.packageName,
@@ -104,20 +101,20 @@ export default function MyBookings() {
         });
         
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Payment failed");
+        if (!res.ok) throw new Error(data.error || "Payment initialization failed");
         
-        // Redirect to Stripe
+        // Redirect the user to the Stripe Checkout page
         window.location.href = data.url;
 
     } catch (error) {
-        alert("Payment initialization failed. Please contact support.");
-        console.error(error);
+        alert("Payment system is currently busy. Please try again.");
+        console.error("Payment Error:", error);
     }
   };
 
-  // --- UTILS ---
+  // Helper to format 24h time to 12h AM/PM
   const formatTime = (time: string) => {
-    if (!time) return '';
+    if (!time || time.includes('TBD')) return time;
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -125,6 +122,7 @@ export default function MyBookings() {
     return `${formattedHour}:${minutes} ${ampm}`;
   };
 
+  // Loading State
   if (loading || isLoading) {
     return (
         <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center text-white gap-4">
@@ -137,7 +135,10 @@ export default function MyBookings() {
   if (!user) return null;
 
   const now = new Date();
-  // Filter bookings (Pending/Approved go to Upcoming, Paid goes to History if in past)
+  
+  // Filter logic:
+  // - Upcoming: Status is NOT 'rejected' AND (Status is NOT 'paid' OR Date is in future)
+  // - History: Status IS 'paid' AND Date is in past
   const upcomingBookings = bookings.filter(b => b.status !== 'rejected' && (b.status !== 'paid' || new Date(b.date + 'T' + b.startTime) >= now));
   const pastBookings = bookings.filter(b => b.status === 'paid' && new Date(b.date + 'T' + b.startTime) < now);
 
@@ -159,7 +160,7 @@ export default function MyBookings() {
 
         <div className="space-y-16">
           
-          {/* UPCOMING / ACTIVE SECTION */}
+          {/* === ACTIVE DEPLOYMENTS LIST === */}
           <div>
             <h2 className="text-lg font-bold uppercase tracking-widest text-white mb-6 flex items-center gap-2">
               <CheckCircle size={18} className="text-green-500" /> Active Deployments
@@ -169,7 +170,8 @@ export default function MyBookings() {
               <div className="grid gap-4">
                 {upcomingBookings.map(slot => (
                   <div key={slot.id} className="group bg-white/5 border border-white/10 p-6 relative overflow-hidden transition-all hover:bg-white/10 hover:border-white/20 rounded-lg">
-                    {/* Status Line Color */}
+                    
+                    {/* Status Color Indicator Bar */}
                     <div className={`absolute left-0 top-0 h-full w-[3px] transition-all group-hover:w-[6px]
                         ${slot.status === 'paid' ? 'bg-green-500' : 
                           slot.status === 'approved' ? 'bg-[#D52B1E] animate-pulse' : 
@@ -178,12 +180,13 @@ export default function MyBookings() {
                     
                     <div className="flex flex-wrap justify-between items-center relative z-10 pl-3">
                       <div>
+                        {/* DATE & BADGE ROW */}
                         <div className="flex items-center gap-3 mb-1">
                             <span className="text-2xl font-black uppercase tracking-tight text-white">
                               {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                             </span>
                             
-                            {/* STATUS BADGE */}
+                            {/* DYNAMIC BADGES BASED ON STATUS */}
                             {slot.status === 'pending' && (
                                 <span className="flex items-center gap-1 text-[10px] font-bold font-mono bg-yellow-500/10 text-yellow-500 px-2 py-1 border border-yellow-500/20 uppercase rounded">
                                     <Clock size={10} /> Pending Approval
@@ -191,7 +194,7 @@ export default function MyBookings() {
                             )}
                             {slot.status === 'approved' && (
                                 <span className="flex items-center gap-1 text-[10px] font-bold font-mono bg-[#D52B1E]/10 text-[#D52B1E] px-2 py-1 border border-[#D52B1E]/20 uppercase rounded animate-pulse">
-                                    <AlertCircle size={10} /> Action Required
+                                    <AlertCircle size={10} /> Payment Required
                                 </span>
                             )}
                             {slot.status === 'paid' && (
@@ -199,14 +202,23 @@ export default function MyBookings() {
                                     <CheckCircle size={10} /> Confirmed
                                 </span>
                             )}
+                            
+                            {/* Fallback for unknown statuses */}
+                            {slot.status !== 'pending' && slot.status !== 'approved' && slot.status !== 'paid' && (
+                                <span className="flex items-center gap-1 text-[10px] font-bold font-mono bg-gray-500/10 text-gray-400 px-2 py-1 border border-gray-500/20 uppercase rounded">
+                                    <HelpCircle size={10} /> {slot.status}
+                                </span>
+                            )}
                         </div>
 
+                        {/* PACKAGE & TIME */}
                         <div className="flex items-center gap-4 text-xs text-gray-400 font-mono uppercase tracking-widest mt-2">
                             <span className="flex items-center gap-1"><Package size={12} /> {slot.packageName}</span>
                             <span className="flex items-center gap-1 text-white"><Clock size={12} className="text-[#D52B1E]" /> {formatTime(slot.startTime)}</span>
                         </div>
                       </div>
 
+                      {/* PRICE & ACTION BUTTON */}
                       <div className="text-right mt-4 sm:mt-0 flex flex-col items-end gap-2">
                          <div className="text-xl font-bold font-mono text-gray-500 group-hover:text-white transition-colors">
                            ${slot.price}
@@ -237,7 +249,7 @@ export default function MyBookings() {
             )}
           </div>
 
-          {/* PAST SECTION */}
+          {/* === PAST HISTORY LIST === */}
           {pastBookings.length > 0 && (
             <div className="opacity-60 hover:opacity-100 transition-opacity duration-500">
                 <h2 className="text-lg font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
