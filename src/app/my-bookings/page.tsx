@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext'; // Check path ../../ or ../ depending on folder structure
 import { db } from '../lib/firebase';
-import { collectionGroup, query, where, getDocs, orderBy, getDoc, doc } from 'firebase/firestore'; // Note: collectionGroup
+import { collectionGroup, query, where, getDocs, orderBy, getDoc, doc } from 'firebase/firestore'; 
 import { useRouter } from 'next/navigation';
-import { Loader, Calendar, Clock, Package, CheckCircle, History, Shield } from 'lucide-react';
+import { Loader, Clock, Package, CheckCircle, History, Shield } from 'lucide-react';
+import Footer from '../section/Footer'; // Added Footer for consistency
 
 // Define a type that combines the Booking info with the parent Slot info
 interface MyBooking {
@@ -30,13 +31,13 @@ export default function MyBookings() {
     if (!loading && !user) router.push('/login');
   }, [user, loading, router]);
 
-  // 2. Fetch Bookings (Complex Logic for Sub-collections)
+  // 2. Fetch Bookings
   useEffect(() => {
     const fetchBookings = async () => {
       if (user) {
         try {
-          // A. Query all 'bookings' sub-collections across the entire database
-          // Requires a Firestore Index (Check console if it errors!)
+          // NOTE: This query requires a Firestore Index. 
+          // If it fails, check your browser console for a link to create it instantly.
           const q = query(
             collectionGroup(db, 'bookings'),
             where('userId', '==', user.uid),
@@ -45,15 +46,12 @@ export default function MyBookings() {
 
           const querySnapshot = await getDocs(q);
           
-          // B. For each booking found, we need to fetch the PARENT slot details
-          // because the booking itself doesn't have the Date/Time (the Slot does)
           const bookingPromises = querySnapshot.docs.map(async (bookingDoc) => {
             const bookingData = bookingDoc.data();
-            const parentSlotId = bookingDoc.ref.parent.parent?.id; // Get parent ID
+            const parentSlotId = bookingDoc.ref.parent.parent?.id; 
             
             if (!parentSlotId) return null;
 
-            // Fetch Parent Slot Data
             const slotSnap = await getDoc(doc(db, 'training_slots', parentSlotId));
             if (!slotSnap.exists()) return null;
 
@@ -63,7 +61,6 @@ export default function MyBookings() {
               id: bookingDoc.id,
               slotId: parentSlotId,
               bookedAt: bookingData.bookedAt,
-              // Data from Parent Slot
               packageName: slotData.packageName,
               date: slotData.date,
               startTime: slotData.startTime,
@@ -72,10 +69,7 @@ export default function MyBookings() {
             } as MyBooking;
           });
 
-          // Wait for all parent lookups to finish
           const results = await Promise.all(bookingPromises);
-          
-          // Filter out any nulls (deleted slots)
           setBookings(results.filter((b): b is MyBooking => b !== null));
 
         } catch (error) {
@@ -115,93 +109,103 @@ export default function MyBookings() {
   const pastBookings = bookings.filter(b => new Date(b.date + 'T' + b.startTime) < now);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white p-6 md:p-12 font-sans selection:bg-[#D52B1E] selection:text-white">
+    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#D52B1E] selection:text-white flex flex-col">
       
-      {/* HEADER */}
-      <div className="max-w-4xl mx-auto mb-12 border-b border-white/10 pb-6">
-        <div className="flex items-center gap-2 mb-2">
-           <Shield size={12} className="text-[#D52B1E]" />
-           <span className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Operative Profile</span>
-        </div>
-        <h1 className="text-4xl font-black tracking-tighter uppercase">My <span className="text-[#D52B1E]">Bookings</span></h1>
-      </div>
-
-      <div className="max-w-4xl mx-auto space-y-16">
+      {/* MAIN CONTENT WRAPPER 
+          - pt-32 adds padding to top on mobile
+          - md:pt-40 adds more padding on desktop to clear navbar
+          - flex-grow pushes the footer down
+      */}
+      <div className="flex-grow max-w-4xl mx-auto w-full px-6 md:px-12 pt-32 md:pt-40 pb-20">
         
-        {/* UPCOMING SECTION */}
-        <div>
-          <h2 className="text-lg font-bold uppercase tracking-widest text-white mb-6 flex items-center gap-2">
-            <CheckCircle size={18} className="text-green-500" /> Active Deployments
-          </h2>
-          
-          {upcomingBookings.length > 0 ? (
-            <div className="grid gap-4">
-              {upcomingBookings.map(slot => (
-                <div key={slot.id} className="group bg-white/5 border border-white/10 p-6 relative overflow-hidden transition-all hover:bg-white/10 hover:border-white/20">
-                  <div className="absolute left-0 top-0 h-full w-[2px] bg-green-500 group-hover:w-[4px] transition-all" />
-                  
-                  <div className="flex flex-wrap justify-between items-center relative z-10">
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                          <span className="text-2xl font-black uppercase tracking-tight text-white">
-                            {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-                          </span>
-                          <span className="text-xs font-mono bg-green-500/10 text-green-500 px-2 py-0.5 border border-green-500/20 uppercase">
-                            Confirmed
-                          </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-400 font-mono uppercase tracking-widest">
-                         <span className="flex items-center gap-1"><Package size={12} /> {slot.packageName}</span>
-                         <span className="flex items-center gap-1 text-white"><Clock size={12} className="text-[#D52B1E]" /> {formatTime(slot.startTime)}</span>
-                      </div>
-                    </div>
+        {/* HEADER */}
+        <div className="mb-12 border-b border-white/10 pb-6">
+          <div className="flex items-center gap-2 mb-2">
+             <Shield size={12} className="text-[#D52B1E]" />
+             <span className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Operative Profile</span>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter uppercase">
+            My <span className="text-[#D52B1E]">Bookings</span>
+          </h1>
+        </div>
 
-                    <div className="text-right mt-4 sm:mt-0">
-                       <div className="text-xl font-bold font-mono text-gray-500 group-hover:text-white transition-colors">
-                         ${slot.price}
-                       </div>
+        <div className="space-y-16">
+          
+          {/* UPCOMING SECTION */}
+          <div>
+            <h2 className="text-lg font-bold uppercase tracking-widest text-white mb-6 flex items-center gap-2">
+              <CheckCircle size={18} className="text-green-500" /> Active Deployments
+            </h2>
+            
+            {upcomingBookings.length > 0 ? (
+              <div className="grid gap-4">
+                {upcomingBookings.map(slot => (
+                  <div key={slot.id} className="group bg-white/5 border border-white/10 p-6 relative overflow-hidden transition-all hover:bg-white/10 hover:border-white/20 rounded-lg">
+                    <div className="absolute left-0 top-0 h-full w-[3px] bg-green-500 group-hover:w-[6px] transition-all" />
+                    
+                    <div className="flex flex-wrap justify-between items-center relative z-10 pl-3">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <span className="text-2xl font-black uppercase tracking-tight text-white">
+                              {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                            </span>
+                            <span className="text-[10px] font-bold font-mono bg-green-500/10 text-green-500 px-2 py-1 border border-green-500/20 uppercase rounded">
+                              Confirmed
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-gray-400 font-mono uppercase tracking-widest mt-2">
+                            <span className="flex items-center gap-1"><Package size={12} /> {slot.packageName}</span>
+                            <span className="flex items-center gap-1 text-white"><Clock size={12} className="text-[#D52B1E]" /> {formatTime(slot.startTime)}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right mt-4 sm:mt-0">
+                         <div className="text-xl font-bold font-mono text-gray-500 group-hover:text-white transition-colors">
+                           ${slot.price}
+                         </div>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 border border-white/5 border-dashed bg-white/5 text-center text-gray-500 text-xs uppercase tracking-widest rounded-lg">
+                No active missions detected.
+              </div>
+            )}
+          </div>
+
+          {/* PAST SECTION */}
+          {pastBookings.length > 0 && (
+            <div className="opacity-60 hover:opacity-100 transition-opacity duration-500">
+                <h2 className="text-lg font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
+                <History size={18} /> Mission History
+                </h2>
+                
+                <div className="grid gap-4">
+                {pastBookings.map(slot => (
+                    <div key={slot.id} className="bg-black/40 border border-white/5 p-5 flex flex-wrap justify-between items-center grayscale hover:grayscale-0 transition-all rounded-lg">
+                        <div>
+                        <div className="text-lg font-bold uppercase text-gray-400 mb-1">
+                            {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">
+                            {slot.packageName} • {formatTime(slot.startTime)}
+                        </div>
+                        </div>
+                        <div className="text-xs font-bold font-mono text-gray-600 uppercase border border-gray-800 px-2 py-1 rounded">
+                           Completed
+                        </div>
+                    </div>
+                ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 border border-white/5 border-dashed bg-white/5 text-center text-gray-500 text-xs uppercase tracking-widest">
-              No active missions detected.
             </div>
           )}
-        </div>
-
-        {/* PAST SECTION */}
-        <div className="opacity-60 hover:opacity-100 transition-opacity duration-500">
-          <h2 className="text-lg font-bold uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
-            <History size={18} /> Mission History
-          </h2>
           
-          {pastBookings.length > 0 ? (
-            <div className="grid gap-4">
-              {pastBookings.map(slot => (
-                <div key={slot.id} className="bg-black/40 border border-white/5 p-5 flex flex-wrap justify-between items-center grayscale hover:grayscale-0 transition-all">
-                    <div>
-                      <div className="text-lg font-bold uppercase text-gray-400 mb-1">
-                        {new Date(slot.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                      </div>
-                      <div className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">
-                         {slot.packageName} • {formatTime(slot.startTime)}
-                      </div>
-                    </div>
-                    <div className="text-sm font-mono text-gray-600">
-                       Completed
-                    </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-700 text-xs uppercase tracking-widest">No history logs found.</p>
-          )}
         </div>
-
       </div>
+
+      <Footer />
     </div>
   );
 }
