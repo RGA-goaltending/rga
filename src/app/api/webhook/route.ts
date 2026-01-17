@@ -1,100 +1,92 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { adminDb } from '@/app/lib/firebaseAdmin'; 
-
+import { adminDb } from '@/app/lib/firebaseAdmin';
+import nodemailer from 'nodemailer';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-11-17.clover', // Use the version compatible with your types
+  apiVersion: '2025-11-17.clover',
 });
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-export async function POST(req: NextRequest) {
-  const sig = req.headers.get('stripe-signature');
-  const reqBuffer = await req.arrayBuffer();
+export async function POST(req: Request) {
+  const body = await req.text();
+  
+  // FIX: headers() is now async in Next.js 15
+  const headerList = await headers();
+  const sig = headerList.get('stripe-signature') as string;
 
-  let event;
+  let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(Buffer.from(reqBuffer), sig!, webhookSecret);
-  } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error(`Webhook signature verification failed: ${errorMessage}`);
-    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
+    event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
+  } catch (err: any) {
+    console.error(`Webhook Error: ${err.message}`);
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
 
   // Handle the event
-  switch (event.type) {
-    case 'checkout.session.completed':
-      const session = event.data.object as Stripe.Checkout.Session;
-      
-      if (!session.metadata?.slotId) {
-        return NextResponse.json({ error: 'No slotId in metadata' }, { status: 400 });
-      }
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
 
-      const { slotId, userId } = session.metadata;
-      const customerEmail = session.customer_details?.email;
-      const customerName = session.customer_details?.name;
+    // Extract data
+    const { bookingId, slotId, userId } = session.metadata!;
+    const customerEmail = session.customer_details?.email;
+    const customerName = session.customer_details?.name;
 
-      try {
-        const slotRef = adminDb.collection('training_slots').doc(slotId);
+    try {
+        console.log(`💰 Payment received for Booking: ${bookingId}`);
 
-        // ✅ USE A TRANSACTION
-        // This prevents race conditions (e.g., 2 people buying the last spot at the exact same millisecond)
-        await adminDb.runTransaction(async (transaction) => {
-          const slotDoc = await transaction.get(slotRef);
-
-          if (!slotDoc.exists) {
-            throw new Error("Slot does not exist!");
-          }
-
-          const currentData = slotDoc.data();
-          const currentBooked = currentData?.bookedCount || 0;
-          const capacity = currentData?.capacity || 1; // Default to 1 if missing
-
-          // 1. Calculate new count
-          const newBookedCount = currentBooked + 1;
-
-          // 2. Determine if we are now full
-          // If count >= capacity, mark as 'sold_out'. Otherwise, stay 'available'.
-          const newStatus = newBookedCount >= capacity ? 'sold_out' : 'available';
-
-          // 3. Update the Main Slot (Counters only)
-          transaction.update(slotRef, {
-            status: newStatus,
-            bookedCount: newBookedCount,
-          });
-
-          // 4. Save the Student in a SUB-COLLECTION
-          // This creates a list: training_slots/{id}/bookings/{bookingId}
-          const newBookingRef = slotRef.collection('bookings').doc(); 
-          transaction.set(newBookingRef, {
-            userId: userId,
-            customerName: customerName,
-            customerEmail: customerEmail,
+        // 1. Mark Booking as PAID
+        await adminDb.collection('bookings').doc(bookingId).update({
+            status: 'paid',
             stripeSessionId: session.id,
-            bookedAt: new Date().toISOString(),
-            status: 'confirmed'
-          });
+            amountPaid: session.amount_total ? session.amount_total / 100 : 0,
+            paidAt: new Date().toISOString()
         });
 
-        console.log(`✅ Slot ${slotId} booking confirmed. Count increased.`);
+        // 2. Mark Slot as SOLD OUT
+        if (slotId) {
+            await adminDb.collection('training_slots').doc(slotId).update({
+                status: 'sold_out',
+                bookedBy: userId,
+                bookingId: bookingId
+            });
+        }
 
-      } catch (dbError) {
-        console.error(`❌ Database update failed for slot ${slotId}:`, dbError);
+        // 3. Send Confirmation Email
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS && customerEmail) {
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            });
+
+            await transporter.sendMail({
+                from: '"RGA Goaltending" <no-reply@goalieschool.ca>',
+                to: customerEmail,
+                subject: '✅ Payment Received: Session Confirmed',
+                text: `
+                  Hi ${customerName},
+
+                  Your payment was successful! Your training session is now fully secured.
+                  
+                  You can view your confirmed schedule in the "My Bookings" tab on our website.
+
+                  Thank you,
+                  RGA Team
+                `
+            });
+            console.log("✅ Confirmation email sent.");
+        }
+
+    } catch (error) {
+        console.error("Error updating database after payment:", error);
         return NextResponse.json({ error: 'Database update failed' }, { status: 500 });
-      }
-      break;
-
-    case 'checkout.session.async_payment_failed':
-    case 'checkout.session.expired':
-      // Since we don't reserve spots *before* payment anymore (to allow multiple people to try),
-      // we don't need to revert anything here. The spot was never taken.
-      console.log('Payment failed or expired.');
-      break;
-
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+    }
   }
 
   return NextResponse.json({ received: true });
