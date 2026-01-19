@@ -9,8 +9,8 @@ export default function Footer() {
   const links = [
     { name: "About our School", href: "/about" },
    
-    { name: "Prices", href: "/prices" },
-    { name: "Reviews", href: "/reviews" },
+    { name: "Prices", href: "/#price" },
+    { name: "Reviews", href: "/#reviews" },
     { name: "Gallery", href: "/gallery" },
     { name: "Contacts", href: "/contacts" },
     { name:"Camps", href:"/camps" }

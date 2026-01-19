@@ -299,7 +299,7 @@ export default function AboutPage() {
                     </div>
 
                     <h3 className="text-3xl md:text-6xl font-light leading-tight mb-8">
-                        He looked at my uniform... and jokingly said that maybe the <span className="font-black text-white">USSR national team</span> lacked a goalie like that.
+                        He looked at my jersey... and jokingly said that maybe the <span className="font-black text-white">USSR national team</span> lacked a goalie like that.
                     </h3>
                     
                     <div className="h-px w-32 bg-white/20 my-8"></div>
